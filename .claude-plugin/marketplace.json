@@ -1,0 +1,14 @@
+{
+  "name": "storybook-workbench",
+  "description": "Storybook CSF3 toolkit — audit, capture, author, and ship Storybook for React+Vite apps as focused skills.",
+  "owner": {
+    "name": "strongeron"
+  },
+  "plugins": [
+    {
+      "name": "storybook-workbench",
+      "source": "./",
+      "description": "The full bundle: hub (/sb-hub: onboarding check + orchestrator + navigator) + 9 standalone skills (sb-setup, sb-inventory, sb-health, sb-flows, sb-stories, sb-wrappers, sb-explore, sb-ship, sb-audit) over a shared agent pool."
+    }
+  ]
+}

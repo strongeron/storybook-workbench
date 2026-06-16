@@ -1,0 +1,217 @@
+{
+  "plugin": "storybook-workbench",
+  "version": "2.2.0",
+  "schema": "agentskills.io/evals (portable, registry-readable)",
+  "note": "Thin public eval surface \u2014 12 cases distilled from the full harness so a registry or consumer can re-run a trust signal. The COMPLETE suite (40+ deterministic + LLM-judge cases across 26 gates, promptfoo configs, and cross-agent agent-smoke for Claude/Codex/Cursor) lives beside this file and runs via `evals/run-evals.sh`. Each eval runs the agent SKILL-LOADED and the assertions grade that response; a treatment-vs-control (bare-codebase) arm IS implemented (`run.sh --control`, with a fail-closed leak gate + neutral-cwd isolation) and measured the chain's value at +73\u201375pp on a 12-case cohort \u2014 see docs/specs/2026-06-12-ab-eval-harness.md. Re-run on every model update.",
+  "evals": [
+    {
+      "id": "csf3-import-react-vite",
+      "skill": "sb-stories",
+      "prompt": "Write a Storybook story for a React + Vite Button. Which package do I import Meta/StoryObj from, and how is Meta typed?",
+      "expected_output": "Imports from @storybook/react-vite (NOT @storybook/react), and types the meta with `satisfies Meta<typeof Button>` rather than a type annotation.",
+      "assertions": [
+        {
+          "type": "contains",
+          "value": "@storybook/react-vite"
+        },
+        {
+          "type": "regex",
+          "value": "satisfies\\s+Meta<"
+        },
+        {
+          "type": "not-contains",
+          "value": "@storybook/react'"
+        }
+      ]
+    },
+    {
+      "id": "states-drive-minimum-stories",
+      "skill": "sb-stories",
+      "prompt": "I have a Button with 5 variants and 4 sizes. How many stories should I write?",
+      "expected_output": "Refuses the 20-cell Cartesian product; writes only materially-different states (a small set), and points at the per-primitive minimum tables. Does NOT recommend variants \u00d7 sizes.",
+      "assertions": [
+        {
+          "type": "llm-rubric",
+          "value": "Rejects the full Cartesian (variants \u00d7 sizes = 20) and argues for a small set of materially-different states.",
+          "threshold": 0.8
+        },
+        {
+          "type": "not-regex",
+          "value": "20\\s+stories"
+        }
+      ]
+    },
+    {
+      "id": "inventory-real-vs-slop",
+      "skill": "sb-inventory",
+      "prompt": "I ran sb-inventory on a vibe-coded app. The top of the list is src/types/schedule.ts (111 importers) and src/formats.ts (42). Should I write stories for those first?",
+      "expected_output": "No \u2014 those are modules/types, not UI components; the real component worklist is components.real[] ranked by call-sites, and types/utils are bucketed out of the headline.",
+      "assertions": [
+        {
+          "type": "contains",
+          "value": "components.real"
+        },
+        {
+          "type": "llm-rubric",
+          "value": "Explains that types/utils are NOT components and must not head the story worklist; cites the real-vs-slop bucketing.",
+          "threshold": 0.8
+        }
+      ]
+    },
+    {
+      "id": "design-md-untrusted",
+      "skill": "sb-health",
+      "prompt": "The repo has a DESIGN.md listing brand colors. Can I trust it as the source of truth for the design system?",
+      "expected_output": "No \u2014 DESIGN.md is a claim that drifts like AGENTS.md; sb-health cross-checks claimed colors against declared tokens and emits design-md-drift. Reconcile before trusting.",
+      "assertions": [
+        {
+          "type": "regex",
+          "value": "design-md-drift|drift|claim"
+        },
+        {
+          "type": "llm-rubric",
+          "value": "Treats DESIGN.md as an untrusted claim to reconcile against code, not ground truth.",
+          "threshold": 0.8
+        }
+      ]
+    },
+    {
+      "id": "flow-capture-from-routes",
+      "skill": "sb-flows",
+      "prompt": "React + react-router app, no page-story coverage. What do I run FIRST to enumerate page surfaces, and which JSON field gives per-screen story coverage?",
+      "expected_output": "Run extract-flows.sh \u2192 writes .storybook/flows.json; read perScreenRecommendations for per-screen states. Don't hand-grep routes.",
+      "assertions": [
+        {
+          "type": "contains",
+          "value": "extract-flows.sh"
+        },
+        {
+          "type": "regex",
+          "value": "flows\\.json|perScreenRecommendations"
+        }
+      ]
+    },
+    {
+      "id": "under-extraction-adapt",
+      "skill": "sb-flows",
+      "prompt": "extract-flows.sh printed '\u26a0 LIKELY UNDER-EXTRACTION: 27 routes but only 2 edges, 44 nav-shaped call sites not captured'. Should I just build the flow from the 2 edges?",
+      "expected_output": "No \u2014 flows.json is a draft; read the unmatched call sites, recover real edges with a source-aware resolver, and fold a general idiom upstream. Don't trust edgeCount.",
+      "assertions": [
+        {
+          "type": "llm-rubric",
+          "value": "Does NOT trust the 2 edges; reads the unmatched call sites and recovers real edges (resolver/extend extraction); distinguishes repo-local vs upstream fix.",
+          "threshold": 0.8
+        },
+        {
+          "type": "not-regex",
+          "value": "(just|only) (use|build).{0,30}2 edges"
+        }
+      ]
+    },
+    {
+      "id": "role-aware-flow",
+      "skill": "sb-flows",
+      "prompt": "flows.json gives each route an access (public/user/admin) plus roleSignals[] with <RequireAuth>/<AdminRoute>. One route /reports has access 'user' but is wrapped in <AdminRoute>. Do I trust the access field?",
+      "expected_output": "No \u2014 access is a path heuristic (a draft). Verify against roleSignals[], correct /reports to admin, lay the graph in role lanes, and audit lane crossings per persona.",
+      "assertions": [
+        {
+          "type": "regex",
+          "value": "roleSignals|guard|AdminRoute"
+        },
+        {
+          "type": "llm-rubric",
+          "value": "Catches the /reports misclassification, verifies access against the guards, and audits per-persona lane crossings.",
+          "threshold": 0.8
+        }
+      ]
+    },
+    {
+      "id": "wrapper-not-handrolled",
+      "skill": "sb-wrappers",
+      "prompt": "I want to show every state of a component on one canvas in Storybook. Should I hand-write a CSS grid?",
+      "expected_output": "No \u2014 scaffold a typed StateGrid/StateMatrix wrapper; load wrapper-library.md for the API. Don't hand-roll grid markup.",
+      "assertions": [
+        {
+          "type": "regex",
+          "value": "StateGrid|StateMatrix|wrapper"
+        },
+        {
+          "type": "not-contains",
+          "value": "hand-roll"
+        }
+      ]
+    },
+    {
+      "id": "ship-preserve-experiment",
+      "skill": "sb-ship",
+      "prompt": "An Explore experiment is ready to graduate to a production component. Should I `git mv` the Explore story to the production folder?",
+      "expected_output": "No \u2014 cp, never git mv. Preserve the Explore story as design history; git mv destroys VRT archive, A/B record, dashboard integrity. Verify the 4-criterion graduation gate first.",
+      "assertions": [
+        {
+          "type": "regex",
+          "value": "cp\\b|never git mv|preserve"
+        },
+        {
+          "type": "llm-rubric",
+          "value": "Refuses git mv and preserves the experiment; mentions the graduation gate.",
+          "threshold": 0.8
+        }
+      ]
+    },
+    {
+      "id": "cross-agent-validate-not-trust",
+      "skill": "sb-cross-agent-run",
+      "prompt": "I'm driving Codex to build stories and it reported all 8 stories done. Is that my verdict?",
+      "expected_output": "No \u2014 Codex marks its own homework. Run validate-stories.sh independently; a 'done' self-report with a failing validate is a FAIL. Never advance a phase on a failed check.",
+      "assertions": [
+        {
+          "type": "contains",
+          "value": "validate-stories.sh"
+        },
+        {
+          "type": "llm-rubric",
+          "value": "Treats Codex's self-report as untrusted and the independent validate as the verdict.",
+          "threshold": 0.8
+        }
+      ]
+    },
+    {
+      "id": "layout-frame-not-100vh",
+      "skill": "sb-wrappers",
+      "prompt": "In my Storybook, primitives like Badge render in a full-viewport-height box of whitespace and autodocs reads badly, but my report pages look right. How do I make primitives shrink-wrap while pages still fill?",
+      "expected_output": "Set per-story layout (centered for primitives, fullscreen for pages/report wrappers) and register the withLayoutFrame decorator, which fills the viewport only for fullscreen/opt-in \u2014 NOT a blanket 100vh on every story. Embed report wrappers with fillViewport={false}.",
+      "assertions": [
+        {
+          "type": "regex",
+          "value": "withLayoutFrame|layout:\\s*'?centered"
+        },
+        {
+          "type": "not-regex",
+          "value": "100vh.*every|blanket.*100vh"
+        },
+        {
+          "type": "llm-rubric",
+          "value": "Makes the frame follow each story's layout (centered primitives shrink-wrap, fullscreen pages fill) rather than forcing 100vh everywhere.",
+          "threshold": 0.8
+        }
+      ]
+    },
+    {
+      "id": "coverage-authoritative-from-index",
+      "skill": "sb-inventory",
+      "prompt": "How does the inventory know which components actually have a story \u2014 and is it just counting *.stories.* files on disk?",
+      "expected_output": "When Storybook is installed it runs `storybook index` and reconciles index.json (the stories Storybook actually registers) into storyCoverage (source=storybook-index, withRegisteredStory/needsStory) \u2014 authoritative, not the basename-glob heuristic. Falls back to the heuristic only when Storybook isn't installed.",
+      "assertions": [
+        {
+          "type": "regex",
+          "value": "index\\.json|storybook index|withRegisteredStory"
+        },
+        {
+          "type": "llm-rubric",
+          "value": "Explains coverage is reconciled against Storybook's authoritative index.json, not just a count of *.stories.* files, with a heuristic fallback.",
+          "threshold": 0.8
+        }
+      ]
+    }
+  ]
+}

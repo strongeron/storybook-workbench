@@ -1,0 +1,24 @@
+{
+  "name": "storybook-workbench",
+  "displayName": "Storybook Workbench",
+  "version": "2.2.0",
+  "description": "Work WITH Storybook on React+Vite apps: audit a vibe-coded codebase for real-vs-slop components, capture flows/app-maps, write CSF3 stories, and ship — as focused skills, not one monolith.",
+  "author": {
+    "name": "strongeron"
+  },
+  "homepage": "https://github.com/strongeron/storybook-workbench",
+  "repository": "https://github.com/strongeron/storybook-workbench",
+  "license": "MIT",
+  "keywords": [
+    "storybook",
+    "csf3",
+    "react",
+    "vite",
+    "design-system",
+    "shadcn",
+    "tailwind",
+    "component-inventory",
+    "audit"
+  ],
+  "skills": "./skills/"
+}
