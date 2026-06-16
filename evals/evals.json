@@ -2,7 +2,7 @@
   "plugin": "storybook-workbench",
   "version": "2.2.0",
   "schema": "agentskills.io/evals (portable, registry-readable)",
-  "note": "Thin public eval surface \u2014 12 cases distilled from the full harness so a registry or consumer can re-run a trust signal. The COMPLETE suite (40+ deterministic + LLM-judge cases across 26 gates, promptfoo configs, and cross-agent agent-smoke for Claude/Codex/Cursor) lives beside this file and runs via `evals/run-evals.sh`. Each eval runs the agent SKILL-LOADED and the assertions grade that response; a treatment-vs-control (bare-codebase) arm IS implemented (`run.sh --control`, with a fail-closed leak gate + neutral-cwd isolation) and measured the chain's value at +73\u201375pp on a 12-case cohort \u2014 see docs/specs/2026-06-12-ab-eval-harness.md. Re-run on every model update.",
+  "note": "Thin public eval surface \u2014 11 cases distilled from the full harness so a registry or consumer can re-run a trust signal. The COMPLETE suite (40+ deterministic + LLM-judge cases across 26 gates, promptfoo configs, and cross-agent agent-smoke for Claude/Codex/Cursor) lives beside this file and runs via `evals/run-evals.sh`. Each eval runs the agent SKILL-LOADED and the assertions grade that response; a treatment-vs-control (bare-codebase) arm IS implemented (`run.sh --control`, with a fail-closed leak gate + neutral-cwd isolation) and measured the chain's value at +73\u201375pp on a 12-case cohort \u2014 see docs/specs/2026-06-12-ab-eval-harness.md. Re-run on every model update.",
   "evals": [
     {
       "id": "csf3-import-react-vite",
@@ -154,23 +154,6 @@
         {
           "type": "llm-rubric",
           "value": "Refuses git mv and preserves the experiment; mentions the graduation gate.",
-          "threshold": 0.8
-        }
-      ]
-    },
-    {
-      "id": "cross-agent-validate-not-trust",
-      "skill": "sb-cross-agent-run",
-      "prompt": "I'm driving Codex to build stories and it reported all 8 stories done. Is that my verdict?",
-      "expected_output": "No \u2014 Codex marks its own homework. Run validate-stories.sh independently; a 'done' self-report with a failing validate is a FAIL. Never advance a phase on a failed check.",
-      "assertions": [
-        {
-          "type": "contains",
-          "value": "validate-stories.sh"
-        },
-        {
-          "type": "llm-rubric",
-          "value": "Treats Codex's self-report as untrusted and the independent validate as the verdict.",
           "threshold": 0.8
         }
       ]

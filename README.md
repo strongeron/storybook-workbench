@@ -96,16 +96,8 @@ In Claude Code that's just `/sb-hub` (it advances you through), or ask in plain 
 
 This bundle ships a registry-readable eval surface at **`evals/evals.json`** — behavioral cases (skill-loaded
 vs. baseline, with deterministic + LLM-judge assertions) covering the core claims of each skill: CSF3 import
-conventions, real-vs-slop inventory, role-aware flow capture, adaptive route extraction, ship-preserve-experiment,
-and cross-agent validation. It's the trust signal — the skills are tested, not just written.
-
----
-
-## Advanced: cross-agent runs
-
-The bundle includes **`sb-cross-agent-run`**, which drives the full pipeline with **Codex or Cursor building one
-phase per turn and Claude validating between phases**. It depends on a maintainer harness and is not part of the
-standalone install — see the source repo if you want to run it.
+conventions, real-vs-slop inventory, role-aware flow capture, adaptive route extraction, and
+ship-preserve-experiment. It's the trust signal — the skills are tested, not just written.
 
 ---
 
