@@ -38,6 +38,12 @@ claude plugin marketplace add strongeron/storybook-workbench
 claude plugin install storybook-workbench@storybook-workbench
 ```
 
+**Codex:** install **project-scoped** (drop `--global` — the skills CLI doesn't support global install for
+Codex), run from your project root:
+```bash
+npx skills add strongeron/storybook-workbench --agent codex --yes
+```
+
 Then restart your agent session so it registers the skills.
 
 ### Kick it off
