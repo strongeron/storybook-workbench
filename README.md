@@ -15,9 +15,10 @@ clean and the whole audit is one removable folder.
 
 Works on any agent that supports the [Agent Skills](https://agentskills.io) standard.
 
-**Any agent (skills.sh) — the whole bundle:**
+**Any agent (skills.sh) — all 10 skills (the whole bundle):**
 ```bash
-npx skills add strongeron/storybook-workbench
+npx skills add strongeron/storybook-workbench          # installs ALL 10 skills
+npx skills add strongeron/storybook-workbench --all    # same, fully non-interactive (all skills + all agents, -y) — for CI
 ```
 
 **Just one skill** (each ships self-contained — its own scripts, references, wrappers, and the layout decorator):
@@ -44,6 +45,16 @@ Codex), run from your project root:
 npx skills add strongeron/storybook-workbench --agent codex --yes
 ```
 
+**Cursor:** skills are **project-scoped** (Cursor has no global skills dir) — run from your project root,
+then reload the window:
+```bash
+npx skills add strongeron/storybook-workbench --agent cursor --yes
+# then: Cmd/Ctrl+Shift+P → "Developer: Reload Window"
+```
+After reload the skills appear in Cursor's **`/` menu** under **Skills** — invoke one by name
+(`/sb-hub`, `/sb-setup`, `/sb-inventory`, …), or just ask in plain language and the matching skill
+triggers by description.
+
 Then restart your agent session so it registers the skills.
 
 ### Kick it off
@@ -51,7 +62,7 @@ Then restart your agent session so it registers the skills.
 | Agent | How it triggers | Start with |
 |-------|-----------------|------------|
 | **Claude Code** | by description, or by name | `/sb-hub`, or ask *"audit this React+Vite app and set up Storybook"* |
-| **Cursor** | by description (Composer) | ask *"audit this React+Vite app and set up Storybook"* |
+| **Cursor** | by name via `/`, or by description | reload the window, then `/sb-hub` (skills show under **Skills** in the `/` menu), or ask *"audit this React+Vite app and set up Storybook"* |
 | **Codex** | by name | mention `$sb-hub`, or a specific `$sb-stories` / `$sb-audit` |
 
 When unsure, start at **`sb-hub`** — it inspects the project and names the next step (or drives the whole flow).
