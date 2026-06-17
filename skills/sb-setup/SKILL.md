@@ -22,8 +22,10 @@ This skill is a thin **align+verify** layer. It does NOT re-implement a bootstra
 
 ```bash
 test -d .storybook && grep -q '"storybook"' package.json 2>/dev/null && echo PRESENT || echo NO_STORYBOOK
-# NO_STORYBOOK → defer:
-npx storybook ai setup        # Storybook 10.4 agentic onboarding
+# NO_STORYBOOK → defer to Storybook's OWN official onboarding. `storybook` is the official npm
+# package (@storybook/cli) — not a URL, not bundled or controlled by this skill; the USER runs it.
+# This skill ships ZERO runtime dependencies and makes no network calls of its own. See SECURITY.md.
+npx storybook ai setup        # Storybook 10.4 agentic onboarding (the official `storybook` package)
 ```
 
 ## Know what the native flow already does

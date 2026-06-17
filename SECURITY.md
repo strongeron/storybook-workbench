@@ -55,6 +55,25 @@ leaves a half-written JSON.
 - No `rm -rf`, no `git push`, no `git reset --hard`, no force operations.
 - `sb-ship` adds files; it does not delete or rewrite history.
 
+## Automated audit notes (re: skills.sh scanner WARNs)
+
+Two skills carry a **MEDIUM** scanner WARN. Both are **heuristic false positives** that fire on
+*code execution* (which every functional skill does), not real vulnerabilities. Provenance:
+
+- **`sb-setup` — Snyk W012 "unverifiable external dependency / runtime URL (0.90)".** This is the
+  `npx storybook ai setup` line. `storybook` is the **official Storybook npm package** (`@storybook/cli`),
+  not a URL and not bundled or controlled by this skill — it is the project's *own* Storybook installer,
+  run explicitly by the user. The skill ships **zero** runtime dependencies and makes no network calls of
+  its own (see *Network — none* above). Removing the step would defeat the skill's sole purpose
+  (deferring to Storybook's official onboarding instead of reinventing it).
+- **`sb-wrappers` — Socket "Security · SKILL.md · MEDIUM".** This is the `scaffold-wrapper.sh` invocation.
+  That script is a **local bash file vendored inside the skill** — it only copies the bundled `.tsx`
+  wrapper components into the project's `.storybook/`. No network, no install, no external/remote code.
+
+Both are run **explicitly by the user/agent**, never silently, and both are reviewable in full from the
+shipped source. We treat these WARNs as expected for a code-running skill; this section is the appeal
+evidence for a re-audit.
+
 ## Reporting
 
 This bundle lives in `strongeron/agent-skills`. Report any security concern via a
