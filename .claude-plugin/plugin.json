@@ -1,7 +1,7 @@
 {
   "name": "storybook-workbench",
   "displayName": "Storybook Workbench",
-  "version": "2.2.0",
+  "version": "2.3.0",
   "description": "Work WITH Storybook on React+Vite apps: audit a vibe-coded codebase for real-vs-slop components, capture flows/app-maps, write CSF3 stories, and ship — as focused skills, not one monolith.",
   "author": {
     "name": "strongeron"

@@ -23,11 +23,42 @@
  * stories — those are human-authored catalogs, self-evident, and a provenance block would be both
  * noise and untrue.
  *
+ * Visibility — OFF BY DEFAULT. The provenance banner orients a first-time viewer of the PUBLISHED
+ * Storybook demo; it explains the plugin's plumbing (which skill made the data, what file, how to
+ * refresh). In a real client deliverable that meta-narration is noise, so ReportIntro renders
+ * nothing unless provenance is switched on — reachable on demand for when someone asks "where is
+ * this from?":
+ *   · setProvenance(true)  — or  globalThis.__SB_WB_PROVENANCE__ = true  (set in .storybook/preview.ts,
+ *                            a toolbar global, or at runtime) → every banner appears.
+ *   · <ReportIntro show />  — reveal a single one without the global switch.
+ * ExperimentBanner is unaffected: a lifecycle-status line ("not shipped, decision pending") is real
+ * deliverable content, not demo orientation.
+ *
  * Self-contained: only CSS custom properties with literal fallbacks, so it renders identically
  * inside a wrapper's themed Shell AND in a bare MDX docs page (no token shim needed).
  * Storybook-only — never imported from app code.
  */
 import type { CSSProperties, ReactNode } from 'react';
+
+// ── Provenance visibility gate ───────────────────────────────────────────────────
+// One switch controls every "what is this?" banner. Default OFF so real deliverables aren't
+// cluttered with the plugin's own plumbing; reachable on demand (see the Visibility note above).
+const PROVENANCE_GLOBAL = '__SB_WB_PROVENANCE__';
+
+/** Turn the provenance banners on (or off). The reachable, on-demand switch. */
+export function setProvenance(on: boolean = true): void {
+  (globalThis as Record<string, unknown>)[PROVENANCE_GLOBAL] = on;
+}
+
+/**
+ * Resolve whether a provenance banner should show. Precedence: an explicit per-call `show` wins;
+ * otherwise the global switch; default false (hidden). Absent switch → false, so the real-usage
+ * default needs zero configuration.
+ */
+export function provenanceEnabled(show?: boolean): boolean {
+  if (typeof show === 'boolean') return show;
+  return (globalThis as Record<string, unknown>)[PROVENANCE_GLOBAL] === true;
+}
 
 const SANS = 'var(--font-family-sans, ui-sans-serif, system-ui, sans-serif)';
 const MONO = 'ui-monospace, SFMono-Regular, Menlo, Consolas, monospace';
@@ -153,10 +184,16 @@ export interface ReportIntroProps {
    * e.g. [{skill:'sb-inventory',role:'usage data'},{skill:'sb-wrappers',role:'this band'},{skill:'sb-stories',role:'the stories'}]
    */
   pipeline?: Array<{ skill: string; role: string }>;
+  /**
+   * Force this one banner visible (true) or hidden (false), bypassing the global switch. Omit to
+   * follow the default — OFF unless provenance is switched on (setProvenance / __SB_WB_PROVENANCE__).
+   */
+  show?: boolean;
 }
 
-/** Provenance banner for derived-report surfaces. */
-export function ReportIntro({ what, source, freshness, refresh, pipeline }: ReportIntroProps) {
+/** Provenance banner for derived-report surfaces. OFF by default — see the Visibility note above. */
+export function ReportIntro({ what, source, freshness, refresh, pipeline, show }: ReportIntroProps) {
+  if (!provenanceEnabled(show)) return null;
   return (
     <aside aria-label="What this page is and where its data comes from" style={cardStyle}>
       {/* When a "made by" pipeline is shown below, drop the skill from the eyebrow (no duplication). */}

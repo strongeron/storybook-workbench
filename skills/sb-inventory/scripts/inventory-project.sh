@@ -424,13 +424,18 @@ _idx_path = os.path.join(os.path.dirname(out_path) or ".", "index.json")
 try:
     _entries = json.load(open(_idx_path)).get("entries") or {}
     _idx_list = _entries.values() if isinstance(_entries, dict) else _entries
+    # Normalize both sides to an alphanumeric slug: component files are kebab-case (context-selector.tsx)
+    # while story files are PascalCase (ContextSelector.stories.tsx). A plain .lower() left the hyphens,
+    # so kebab never matched squashed Pascal and coverage collapsed to only hyphen-less names.
+    def _slug(s):
+        return "".join(ch for ch in s.lower() if ch.isalnum())
     _indexed_base = {
-        os.path.basename(_e.get("importPath", "")).split(".stories.")[0].lower()
+        _slug(os.path.basename(_e.get("importPath", "")).split(".stories.")[0])
         for _e in _idx_list if _e.get("type") == "story" and _e.get("importPath")
     }
     _indexed_base.discard("")
     def _registered(entry):
-        return os.path.splitext(os.path.basename(entry["file"]))[0].lower() in _indexed_base
+        return _slug(os.path.splitext(os.path.basename(entry["file"]))[0]) in _indexed_base
     _reg_needs = sorted({os.path.splitext(os.path.basename(e["file"]))[0] for e in _own if not _registered(e)})
     story_coverage.update({
         "source": "storybook-index",
@@ -455,18 +460,25 @@ support_count = sum(real_by_kind[k] + dead_by_kind[k] for k in ("scaffold", "sup
 vendor_count  = real_by_kind["vendor"] + dead_by_kind["vendor"]
 module_count  = real_by_kind["module"] + dead_by_kind["module"]
 
-# Token usage map from the single-source scanner (token-usage.py): every DECLARED token, its
-# category, used/orphan status, reference count, and the files where it's consumed. Powers the
-# Foundation "real usage" tables (Colors / Typography / Scales) AND sb-health's unused-token findings.
+# Token usage map from the single-source scanner (token-usage.py): every declared token AND every used
+# Tailwind-default type utility, its category, used/orphan status, reference count, files consumed, and
+# (for utilities) source:'tailwind-default'. Powers the Foundation "real usage" tables (Colors / Typography
+# / Scales), the UsageExplorer typography lane, AND sb-health's unused-token findings (declared only —
+# tailwind-default rows are never orphans, so they don't reach the health view).
 orphan_token_list = []
 token_map = []
 try:
     tdata = json.load(open(tokens_json_path))
     for r in tdata.get("tokens", []):
-        token_map.append({"token": r["token"], "category": r["category"],
-                          "status": r["status"], "count": r["count"], "files": r.get("files", []),
-                          "declaredIn": r.get("declaredIn")})
-        if r["status"] == "orphan":
+        row = {"token": r["token"], "category": r["category"],
+               "status": r["status"], "count": r["count"], "files": r.get("files", []),
+               "declaredIn": r.get("declaredIn")}
+        if r.get("source"):
+            row["source"] = r["source"]
+        if r.get("aliasOf"):
+            row["aliasOf"] = r["aliasOf"]
+        token_map.append(row)
+        if r["status"] == "orphan" and r.get("source") != "tailwind-default":
             orphan_token_list.append(r["token"])
 except (FileNotFoundError, ValueError):
     pass

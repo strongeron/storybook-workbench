@@ -146,14 +146,18 @@ done
 
 # ---- always copy the shared support files ----
 # icons.tsx is the ONE wrapper icon language; ReportIntro.tsx is the shared "what is this /
-# where from" orientation banner imported by the report wrappers (ProjectInventory, AppFlowGraph,
+# where from" orientation banner (OFF by default — reachable on demand via setProvenance() /
+# __SB_WB_PROVENANCE__) imported by the report wrappers (ProjectInventory, AppFlowGraph,
 # DesignSystemHealth, ComponentUsage, TokenMatrix, DecisionsDashboard) and the experiment banner
 # imported by ABCanvas. usage-index.tsx is the where-is-this-used resolver imported by TokenMatrix +
 # UsageExplorer. usage-stamp.tsx is the shared header/lane/chip/legend primitives + the component-pages
 # data loader, imported by UsageExplorer, ComponentContext AND IconMatrix. ComponentContext.tsx is the per-component
 # "Where it's used" map that UsageSection renders on every component's Docs page. Force-copied so a copied
 # wrapper never loses a dependency. (Color comes from the app's CSS vars — var(--color-*) — not a JS palette.)
-for shared_file in icons.tsx swatches.tsx usage-badge.tsx ReportIntro.tsx usage-index.tsx usage-stamp.tsx ComponentContext.tsx; do
+# resolve-paint.ts is the shared bare-channel-OKLCH paint helper imported by every swatch surface
+# (swatches, TokensCanvas, usage-stamp, TokenMatrix) — force-copied so a vendored swatch wrapper
+# never ships importing a missing './resolve-paint'.
+for shared_file in icons.tsx swatches.tsx usage-badge.tsx ReportIntro.tsx usage-index.tsx usage-stamp.tsx ComponentContext.tsx resolve-paint.ts; do
   if [[ -f "$WRAPPERS_SRC/$shared_file" ]]; then
     if [[ ! -f "$TARGET_DIR/$shared_file" ]] || $FORCE; then
       cp "$WRAPPERS_SRC/$shared_file" "$TARGET_DIR/$shared_file"

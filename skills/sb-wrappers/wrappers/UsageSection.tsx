@@ -23,7 +23,7 @@
  */
 import { useOf } from '@storybook/addon-docs/blocks';
 import usage from '../component-usage.json';
-import { ReportIntro } from './ReportIntro';
+import { ReportIntro, provenanceEnabled } from './ReportIntro';
 import { ComponentContext } from './ComponentContext';
 import { useStoryLinker } from './usage-index';
 import { REPORT, Chip, Lane, line, dim, mono, surface, stripTok, stripPage, type PageRef } from './usage-stamp';
@@ -98,7 +98,10 @@ function FoundationWhereUsed({ prefixes, label }: { prefixes: string[]; label: s
 
 // Pages/* get a "what is this?" provenance band: a Page story is the REAL app page rendered in isolation
 // through the provider/Inertia mocks — say so, and where it comes from, since there's no prop/usage table.
-function PageIntro({ title }: { title: string }): JSX.Element {
+// Provenance is OFF by default (demo-only), and this section is nothing BUT the band — so when it's off,
+// contribute nothing rather than an empty spacer <section>. The page story still renders via autodocs.
+function PageIntro({ title }: { title: string }): JSX.Element | null {
+  if (!provenanceEnabled()) return null;
   const name = title.split('/').pop() ?? title;
   return (
     <section style={{ marginTop: '2.5rem' }}>

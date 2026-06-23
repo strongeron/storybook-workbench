@@ -6,7 +6,7 @@ allowed-tools: Bash Read Glob Grep Write Edit
 license: MIT
 metadata:
   author: strongeron
-  version: '2.2.0'
+  version: '2.3.0'
   bundle: storybook-workbench
   vendor:
     # Skill-local files live in this skill's scripts/ + references/; shared ones (e.g. discover-runtime.py,

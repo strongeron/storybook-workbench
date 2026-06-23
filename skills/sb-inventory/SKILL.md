@@ -6,7 +6,7 @@ allowed-tools: Bash Read Glob Grep Write
 license: MIT
 metadata:
   author: strongeron
-  version: '2.2.0'
+  version: '2.3.0'
   bundle: storybook-workbench
   vendor:
     scripts: [inventory-project.sh, token-usage.py, scaffold-wrapper.sh, extract-component-usage.sh, scaffold-usage-mdx.py, build-component-pages.py, refresh-usage.sh]
@@ -105,7 +105,12 @@ generate the component↔page import graph. It **composes** the three discovery 
 component's `files`), `project-inventory.json` (each component's `file`/`kind`), and `flows.json`
 (route `path` + `access` role), then writes `.storybook/component-pages.json`:
 per component `{callSites, props, declaredButUnused, parents[], children[], pages[{path, title, role, storyId}]}`,
-plus the **bidirectional usage edges** so one file answers "where is X used" in any direction:
+plus, when the component's own file **is** a routed page surface, `isPage:true` + `route` (the path it
+serves). A page is mounted by the router as a config value (`{ component: X }`), never as JSX, so it has 0
+call sites / 0 props **by construction** (accurate, not missing) — `route` lets the docs read "serves
+/scheduler" instead of a misleading "0". `route` is the route it *serves*, kept out of `pages[]` (a page
+listed among "pages it appears on" reads circular).
+This is paired with the **bidirectional usage edges** so one file answers "where is X used" in any direction:
 `fileIndex` (`<src file> → {component, kind, pages[]}`), `tokens` (`<--token> → {category, count, components[], pages[]}` —
 forward), and per component a `tokens[]` array (the reverse — what that component consumes). `tokens` lists
 **every declared token** (used, primitive-only, or orphan) — a token consumed only by a design-system
@@ -129,11 +134,19 @@ barrel/dynamic/aliased imports can under-link; verify load-bearing edges against
 1. **One docs block, every Docs page (default, zero files).** Ship the `UsageSection` wrapper and add it
    to the **global autodocs layout** in `.storybook/preview.ts`. It adds a real-usage section to each
    section's Docs, reading the matching audit output file (so foundations need `tags: ['autodocs']`):
-   - **Components** → `component-pages.json` — a "what is this + where it's from" band (the real component
-     from `src/`, rendered in isolation) then the `ComponentContext` "Where it's used" map (the pages it
-     lands on, what nests it, what it renders, the tokens it pulls). Reuses the Usage-explorer stamp.
-   - **Pages/*** → a "what is this?" provenance band only (no prop table): the real app page from `src/`,
-     rendered through the provider/Inertia mocks (sb-setup) — the actual page, not a mockup.
+   - **Components** → `component-pages.json` — the `ComponentContext` "Where it's used" map (the pages it
+     lands on, what nests it, what it renders, the tokens it pulls), plus the real component from `src/`
+     rendered in isolation. **Collapsed by default** for fast scanning: a compact "where it's used" eyebrow
+     + **adaptive meta** is always visible (only the non-zero counts — no redundant big `<h2>`, the Docs
+     title already names the component); the map expands on demand (native `<details>`, open on the
+     standalone audit page). The meta is **page-aware**: a real component reads "5 call sites · 2 props ·
+     has a story", while a routed page (`isPage`) drops call-sites/props and leads with the route it serves
+     — "serves /scheduler · 5 renders · has a story". A "what is this + where it's from" provenance band
+     sits inside it but is **off by default** (demo-only; reach it with `setProvenance()`). Reuses the
+     Usage-explorer stamp.
+   - **Pages/*** → the real app page from `src/`, rendered through the provider/Inertia mocks (sb-setup) —
+     the actual page, not a mockup. Its "what is this?" provenance band is **off by default** (the page
+     story carries the content; the band only returns when provenance is switched on).
    - **Foundations** → nothing from `UsageSection`. Each Foundation renders its own self-contained story:
      `Colors` → `TokenMatrix` (value · mapping · adoption — NOT health; leave the `health` prop off, it
      defaults false), `Health` → `DesignSystemHealth` (full findings), `Icons` → `IconMatrix`,

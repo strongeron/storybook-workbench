@@ -30,10 +30,12 @@ const MONO = 'ui-monospace, SFMono-Regular, Menlo, Consolas, monospace';
 // Bridge design-system tokens onto stock shadcn/Tailwind-v4 primitives with fallbacks (scoped to
 // the wrapper root, cascades to descendants, never leaks). No self-references (those void the fallback).
 const TOKEN_SHIM: Record<string, string> = {
-  '--color-surface': 'var(--color-card, var(--color-background))',
-  '--color-border-subtle': 'var(--color-border, color-mix(in oklab, var(--color-muted-foreground) 22%, transparent))',
-  '--color-text-brand-tertiary': 'var(--color-muted-foreground, var(--color-foreground))',
-  '--color-brand-500': 'var(--color-primary, var(--color-foreground))',
+  // Terminal literals (not self-references — those void the fallback) so chrome stays readable even when
+  // a bare-OKLCH/shadcn project ships no --color-* bridge yet (see sb-setup install-wizard item 11).
+  '--color-surface': 'var(--color-card, var(--color-background, oklch(0.99 0.003 250)))',
+  '--color-border-subtle': 'var(--color-border, color-mix(in oklab, var(--color-muted-foreground, oklch(0.55 0.01 250)) 22%, transparent))',
+  '--color-text-brand-tertiary': 'var(--color-muted-foreground, var(--color-foreground, oklch(0.45 0.01 250)))',
+  '--color-brand-500': 'var(--color-primary, var(--color-foreground, oklch(0.55 0.16 250)))',
 };
 
 // Role lane → chip hue, matching the App Map's 5 real tiers (route-access-service-derived).
@@ -55,7 +57,7 @@ const roleHue = (r?: string) => ROLE_HUE[r ?? ''] ?? 'var(--color-muted-foregrou
 
 function Shell({ children, fillViewport = true }: { children: ReactNode; fillViewport?: boolean }) {
   return (
-    <div style={{ ...TOKEN_SHIM, background: 'var(--color-background)', color: 'var(--color-foreground)', minHeight: fillViewport ? '100dvh' : undefined, fontFamily: SANS, padding: '2.5rem 2rem 5rem' } as CSSProperties}>
+    <div style={{ ...TOKEN_SHIM, background: 'var(--color-background, oklch(1 0 0))', color: 'var(--color-foreground, oklch(0.2 0.01 250))', minHeight: fillViewport ? '100dvh' : undefined, fontFamily: SANS, padding: '2.5rem 2rem 5rem' } as CSSProperties}>
       <div style={{ maxWidth: 1100, margin: '0 auto' }}>{children}</div>
     </div>
   );
@@ -89,10 +91,16 @@ function EmptyState() {
 // and — when it is a container — every component it renders (children, line 2). All names are listed
 // in full (not hidden behind a count) and clickable, so you can walk the tree either direction:
 // click a parent to jump up, click a child to jump down (child → parent → page).
+// Ubiquitous components (Icon, Button) are nested in hundreds of others — an uncapped
+// list dumps a wall of names. Cap to the first N and reveal the rest on demand.
+const NAME_CAP = 12;
 function NameList({ names, onPick }: { names: string[]; onPick: (n: string) => void }) {
+  const [expanded, setExpanded] = useState(false);
+  const shown = expanded ? names : names.slice(0, NAME_CAP);
+  const hidden = names.length - shown.length;
   return (
     <>
-      {names.map((n, i) => (
+      {shown.map((n, i) => (
         <span key={n} style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
           <button
             type="button"
@@ -101,9 +109,19 @@ function NameList({ names, onPick }: { names: string[]; onPick: (n: string) => v
           >
             {n}
           </button>
-          {i < names.length - 1 ? <span aria-hidden="true">·</span> : null}
+          {i < shown.length - 1 ? <span aria-hidden="true">·</span> : null}
         </span>
       ))}
+      {hidden > 0 ? (
+        <button
+          type="button"
+          onClick={() => setExpanded(true)}
+          title={`Show ${hidden} more`}
+          style={{ font: 'inherit', color: 'var(--color-muted-foreground)', background: 'none', border: 'none', padding: '0 0 0 0.3rem', cursor: 'pointer', fontStyle: 'italic', whiteSpace: 'nowrap' }}
+        >
+          +{hidden} more
+        </button>
+      ) : null}
     </>
   );
 }
@@ -132,6 +150,41 @@ function Nesting({ parents, childNames, onPick }: { parents?: string[]; childNam
         </span>
       ) : null}
     </div>
+  );
+}
+
+// Page chips, capped the same way — a global component lands on every route, which
+// would otherwise render 100+ chips per row.
+const PAGE_CAP = 12;
+function PageChips({ pages, appMapHref }: { pages: PageRef[]; appMapHref?: string }) {
+  const [expanded, setExpanded] = useState(false);
+  const shown = expanded ? pages : pages.slice(0, PAGE_CAP);
+  const hidden = pages.length - shown.length;
+  return (
+    <>
+      {shown.map((p) => (
+        <a
+          key={p.path}
+          href={appMapHref}
+          target="_top"
+          title={`${p.title} (${p.path})${appMapHref ? ' — open the App Map' : ''}`}
+          style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.72rem', padding: '0.1rem 0.5rem', borderRadius: 999, border: `1px solid ${roleHue(p.role)}`, color: 'var(--color-foreground)', textDecoration: 'none', whiteSpace: 'nowrap' }}
+        >
+          <span style={{ width: 7, height: 7, borderRadius: 999, background: roleHue(p.role), flexShrink: 0 }} />
+          {p.title}
+        </a>
+      ))}
+      {hidden > 0 ? (
+        <button
+          type="button"
+          onClick={() => setExpanded(true)}
+          title={`Show ${hidden} more pages`}
+          style={{ font: 'inherit', fontFamily: MONO, fontSize: '0.72rem', color: 'var(--color-muted-foreground)', background: 'none', border: 'none', padding: '0.1rem 0.3rem', cursor: 'pointer', fontStyle: 'italic', whiteSpace: 'nowrap' }}
+        >
+          +{hidden} more
+        </button>
+      ) : null}
+    </>
   );
 }
 
@@ -167,15 +220,17 @@ export function ComponentUsage({ fillViewport = true }: { fillViewport?: boolean
           <strong style={{ color: 'var(--color-foreground)' }}>{all.length}</strong> components by real call-site usage ·{' '}
           <strong style={{ color: 'var(--color-foreground)' }}>{nested}</strong> nested in another component ·{' '}
           <strong style={{ color: 'var(--color-foreground)' }}>{resolved}</strong> mapped to a page ·{' '}
-          {appMapHref ? <a href={appMapHref} target="_top" style={{ color: roleHue('user'), textDecoration: 'none' }}>open the App Map →</a> : 'App Map not built'}
+          {appMapHref ? <a href={appMapHref} target="_top" style={{ color: roleHue('user'), textDecoration: 'none' }}>open the App Map →</a> : <span style={{ color: 'var(--color-muted-foreground)' }} title="Run scaffold-wrapper.sh --flow, then add a Flows story (sb-flows) — page chips will deep-link into the App Map.">App Map not built — run <code style={{ fontFamily: MONO }}>scaffold-wrapper.sh --flow</code> + a Flows story to link pages</span>}
         </p>
       </header>
 
+      {/* chrome fallbacks (oklch) keep the filter input visible on a bare-token project that has no
+          --color-* bridge yet (SBW-4 graceful degradation); the bridge, when present, overrides them. */}
       <input
         value={needle}
         onChange={(e) => setNeedle(e.target.value)}
         placeholder="Filter by component or page…"
-        style={{ width: '100%', maxWidth: 360, marginBottom: '1rem', fontFamily: SANS, fontSize: '0.85rem', padding: '0.45rem 0.7rem', borderRadius: 'var(--radius-md, 8px)', border: '1px solid var(--color-border-subtle)', background: 'var(--color-surface)', color: 'var(--color-foreground)' }}
+        style={{ width: '100%', maxWidth: 360, marginBottom: '1rem', fontFamily: SANS, fontSize: '0.85rem', padding: '0.45rem 0.7rem', borderRadius: 'var(--radius-md, 8px)', border: '1px solid var(--color-border-subtle, oklch(0.9 0.005 250))', background: 'var(--color-surface, oklch(0.99 0.002 250))', color: 'var(--color-foreground, oklch(0.2 0.01 250))' }}
       />
 
       <div style={{ border: '1px solid var(--color-border-subtle)', borderRadius: 'var(--radius-lg, 12px)', overflow: 'hidden', background: 'var(--color-surface)' }}>
@@ -192,18 +247,7 @@ export function ComponentUsage({ fillViewport = true }: { fillViewport?: boolean
             <span style={{ textAlign: 'right', fontFamily: MONO, fontSize: '0.78rem', color: 'var(--color-muted-foreground)', fontVariantNumeric: 'tabular-nums' }}>{r.props}</span>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.35rem', alignItems: 'center' }}>
               {r.pages.length > 0 ? (
-                r.pages.map((p) => (
-                  <a
-                    key={p.path}
-                    href={appMapHref}
-                    target="_top"
-                    title={`${p.title} (${p.path}) — open the App Map`}
-                    style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.72rem', padding: '0.1rem 0.5rem', borderRadius: 999, border: `1px solid ${roleHue(p.role)}`, color: 'var(--color-foreground)', textDecoration: 'none', whiteSpace: 'nowrap' }}
-                  >
-                    <span style={{ width: 7, height: 7, borderRadius: 999, background: roleHue(p.role), flexShrink: 0 }} />
-                    {p.title}
-                  </a>
-                ))
+                <PageChips pages={r.pages} appMapHref={appMapHref} />
               ) : r.globalNav ? (
                 // genuinely app-wide chrome (sidebar/header/nav) — present on every screen, not one page
                 <span title="rendered in app-wide nav chrome (sidebar/header) — present on every screen" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.72rem', fontFamily: MONO, padding: '0.1rem 0.5rem', borderRadius: 999, border: '1px solid var(--color-brand-500)', color: 'var(--color-foreground)', whiteSpace: 'nowrap' }}>

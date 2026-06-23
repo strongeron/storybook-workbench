@@ -1,0 +1,28 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://strongeron.github.io/storybook-workbench/colors.schema.json",
+  "title": "sb-health property→token-family rules",
+  "description": "Designer-owned rules: which design-token family is allowed on which CSS property. sb-health's check-property-tokens.py reads this to flag a valid, declared token used on the wrong property (e.g. a container token used as text color). Owned by the designer; the linter script never needs editing.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["propertyTokens"],
+  "properties": {
+    "$schema": { "type": "string" },
+    "propertyTokens": {
+      "type": "object",
+      "description": "Map of CSS property → allowed token prefixes. A trailing '*' on the key makes it a property family (background* → background, background-color, …). Values are token PREFIXES (--color-border allows --color-border and --color-border-strong). Only properties listed here are governed; everything else is ignored, so you opt in property-by-property.",
+      "propertyNames": {
+        "pattern": "^[a-z][a-z-]*\\*?$"
+      },
+      "additionalProperties": {
+        "type": "array",
+        "minItems": 1,
+        "items": {
+          "type": "string",
+          "pattern": "^--[a-z][a-z0-9-]*$",
+          "description": "Token prefix, e.g. --color-content"
+        }
+      }
+    }
+  }
+}

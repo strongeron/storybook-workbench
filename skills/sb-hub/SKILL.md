@@ -6,7 +6,7 @@ allowed-tools: Bash Read Glob Grep
 license: MIT
 metadata:
   author: strongeron
-  version: '2.2.0'
+  version: '2.3.0'
   bundle: storybook-workbench
   vendor:
     scripts: [report-issue.sh]
@@ -122,6 +122,15 @@ complete). You don't run sibling scripts directly; you invoke each focused skill
 6. **`sb-wrappers`** — render each step's output as a view: `ProjectInventory` (after step 2), `DesignSystemHealth`/`TokenMatrix` (after step 3's health), `AppFlowGraph`/`JourneyGraph` (after step 4), and `StateGrid`/`StateMatrix` while authoring stories (step 5). The data wrappers need their step's JSON first — see sb-wrappers "When in the flow".
 7. **`sb-audit`** — periodic drift survey + decision board once stories land; runs `refresh-usage.sh` (below).
 
+**Figma-originated design system (optional branch, after step 1).** The pipeline above is *code-first*
+(audit what exists). When the source of truth is an **approved Figma file**, insert **`sb-figma`** to
+establish foundation-token parity before authoring: it captures the Figma MCP variables to
+`.storybook/figma/`, writes `.storybook/figma-token-parity.json` (color/spacing/type, OKLCH→hex), wires the
+`Foundations/Colors|Tokens|Type` stories' `figmaVar`/`figmaHex`, and reports drift. It feeds — doesn't
+replace — `sb-health` (step 3): health checks the code-internal token set; `sb-figma` adds the design↔code
+axis health can't see. (Delivering approved *components* from Figma is also `sb-figma`, authored via
+`sb-stories`; *iterating undecided* designs stays `sb-explore`.)
+
 Append a one-line finding to `.storybook/audit/findings.md` after each phase. Stop on the first GATE
 that fails and tell the user which verb to fix. (Pattern: ordered pipeline with hard gates, like `lfg`.)
 
@@ -178,9 +187,18 @@ not a basename guess). Then route — **name exactly one**:
 | Inventory done, no `design-system-health.json` | check health before authoring | `sb-health` |
 | Health done, no `flows.json` | capture navigation + app-map | `sb-flows` |
 | Inventory clean, want stories | author ONE component | `sb-stories <Component>` |
-| New/redesigned component, not ready to ship | sandboxed iteration (+ Figma) | `sb-explore` |
+| New/redesigned component, **undecided** — iterating options | sandboxed iteration (+ Figma node) | `sb-explore` |
+| **Approved** Figma design — map foundation tokens (color/spacing/type) or deliver an approved component | Figma → production Storybook | **`sb-figma`** |
+| Check Figma↔code token parity / "is the design system in sync with Figma" | parity + drift report | **`sb-figma`** |
+| Connect components back to Figma (Code Connect) / "show my code in Figma Dev Mode" | code → design (reverse) | **`sb-figma`** |
 | Periodic check | drift survey + decision board | `sb-audit` |
 | Explore meets graduation gate | propagate to production | `sb-ship` |
+
+> **EXPLORE vs DELIVER (both are Figma-aware — route by stage, not by "uses Figma"):** *undecided / trying
+> options* → `sb-explore` (Lab) → `sb-ship` (graduate). *Already approved in Figma* → `sb-figma` (deliver
+> direct to prod). `sb-figma` writes the Foundation token stories itself; for an approved **component** it
+> extracts the design then authors via `sb-stories`' rules. It captures every Figma MCP output to
+> `.storybook/figma/` (manifest + per-tool files) so the pipeline is reproducible/iterable, not MCP-bound.
 
 **Resume rule (CONTEXT.md):** read `status.md` + check which JSONs exist; resume from the first
 incomplete step. Never treat a file half-written in a prior session as complete — re-run that step.

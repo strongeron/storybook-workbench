@@ -7,7 +7,7 @@ map the app's flows and user roles, write conformant CSF3 stories for only the s
 ship — across **Claude Code, Codex, and Cursor**. Everything lands under `.storybook/`, so `src/` stays
 clean and the whole audit is one removable folder.
 
-10 focused skills over a shared foundation, orchestrated by a hub — not one monolithic prompt.
+11 focused skills over a shared foundation, orchestrated by a hub — not one monolithic prompt.
 
 ---
 
@@ -15,15 +15,15 @@ clean and the whole audit is one removable folder.
 
 Works on any agent that supports the [Agent Skills](https://agentskills.io) standard.
 
-**Any agent (skills.sh) — all 10 skills (the whole bundle):**
+**Any agent (skills.sh) — all 11 skills (the whole bundle):**
 ```bash
-npx skills add strongeron/storybook-workbench          # installs ALL 10 skills
+npx skills add strongeron/storybook-workbench          # installs ALL 11 skills
 npx skills add strongeron/storybook-workbench --all    # same, fully non-interactive (all skills + all agents, -y) — for CI
 ```
 
 **Just one skill** (each ships self-contained — its own scripts, references, wrappers, and the layout decorator):
 ```bash
-npx skills add strongeron/storybook-workbench --list          # see the 10 skills
+npx skills add strongeron/storybook-workbench --list          # see the 11 skills
 npx skills add strongeron/storybook-workbench -s sb-wrappers   # install only this one
 npx skills use strongeron/storybook-workbench@sb-wrappers      # try it without installing
 ```
@@ -56,6 +56,17 @@ After reload the skills appear in Cursor's **`/` menu** under **Skills** — inv
 triggers by description.
 
 Then restart your agent session so it registers the skills.
+
+### Updating
+
+Skills install as a snapshot, so to pull the latest — new skills (like `sb-figma`), fixes, wrapper
+updates — **re-run the add command**. It re-fetches and overwrites in place:
+
+```bash
+npx skills add strongeron/storybook-workbench --all          # update every installed skill to latest
+npx skills add strongeron/storybook-workbench -s sb-figma    # update just one skill
+```
+Restart your agent session afterward so it re-registers the updated skills.
 
 ### Kick it off
 
@@ -90,6 +101,9 @@ The core flow, in run order. Each writes to `.storybook/` and is invoked on its 
 |-------|---------------------------|
 | **sb-explore** | prototype a new/redesigned component in a sandbox **outside** `src/` (app code never depends on it). |
 | **sb-ship** | graduate an Explore experiment to a production component (preserves history — `cp`, never `git mv`). |
+| **sb-figma** | bridge Figma↔Storybook both ways via the native Figma MCP — map foundation tokens and deliver approved components (design→code), and build Code Connect mappings so Figma Dev Mode shows the real code (code→design). |
+
+> Plus **sb-cross-agent-run** — a `bundle_only` orchestration skill that drives the whole pipeline cross-agent (Codex/Cursor build, Claude validates, one phase per turn). It ships with the bundle but isn't installed à la carte, so it's not in the 11 count above.
 
 > † Stories go where `sb-setup` asked — default `.storybook/stories/`, or co-located `src/**/*.stories.tsx` if you own the repo long-term.
 

@@ -18,7 +18,7 @@ import { useStoryLinker } from './usage-index'
 import {
   ink, dim, line, surface, brand, mono,
   type PageRef, type CompEntry, type TokenEntry,
-  REPORT, TOKEN_META, isColor, stripTok, stripPage, tokenCategory,
+  REPORT, TOKEN_META, isColor, isUtility, stripTok, stripPage, tokenCategory,
   Chip, Lane, Header, Legend, Muted, card,
   useTokenValues, TokenPreview,
 } from './usage-stamp'
@@ -52,7 +52,13 @@ export function UsageExplorer({ fillViewport = true, initialKind, initialId }: U
   const pages = useMemo(buildPages, [])
   const linkFor = useStoryLinker()
 
-  const tokenIds = useMemo(() => Object.keys(tokens).sort(), [tokens])
+  // ALL declared tokens, not just consumed ones: union the usage graph's `tokens` with every token the
+  // inventory declares (TOKEN_META). A pure orphan (0 references) is intentionally absent from the graph's
+  // forward index, but the explorer is the full-palette view — show it too (Detail marks it 0 references).
+  const tokenIds = useMemo(
+    () => [...new Set([...Object.keys(tokens), ...Object.keys(TOKEN_META)])].sort(),
+    [tokens],
+  )
   const tokenValues = useTokenValues(tokenIds)
   const compIds = useMemo(() => Object.keys(components).sort((a, b) => (components[b].callSites ?? 0) - (components[a].callSites ?? 0)), [components])
   const pageIds = useMemo(() => Object.keys(pages).sort((a, b) => pages[b].components.length - pages[a].components.length), [pages])
@@ -63,20 +69,36 @@ export function UsageExplorer({ fillViewport = true, initialKind, initialId }: U
     : tokenIds[0] ? { kind: 'token', id: tokenIds[0] } : null
   const [kind, setKind] = useState<Kind>(initialSel?.kind ?? 'token')
   const [q, setQ] = useState('')
+  // token category lane (all | color | typography | scale | …) — keeps colors AND the type system in ONE
+  // view, filterable, instead of a separate story. Seeded from a deep-link's token so "see typography" lands here.
+  const [cat, setCat] = useState<string>(initialSel?.kind === 'token' && initialId ? tokenCategory(initialId) : 'all')
   const [sel, setSel] = useState<Sel | null>(initialSel)
 
   const go = (s: Sel) => { setKind(s.kind); setSel(s); setQ('') }
 
-  const ids = kind === 'token' ? tokenIds : kind === 'component' ? compIds : pageIds
+  // category lanes present in the token set + their counts, derived from the data (no hardcoded list).
+  const tokenCats = useMemo(() => {
+    const present = new Set(tokenIds.map(tokenCategory))
+    return CAT_ORDER.filter((c) => present.has(c))
+  }, [tokenIds])
+  const catCounts = useMemo(() => {
+    const m: Record<string, number> = { all: tokenIds.length }
+    for (const id of tokenIds) { const c = tokenCategory(id); m[c] = (m[c] ?? 0) + 1 }
+    return m
+  }, [tokenIds])
+
+  const baseIds = kind === 'token'
+    ? (cat === 'all' ? tokenIds : tokenIds.filter((id) => tokenCategory(id) === cat))
+    : kind === 'component' ? compIds : pageIds
   const labelOf = (k: Kind, id: string) => (k === 'token' ? id.replace(/^--/, '') : k === 'page' ? stripPage(pages[id]?.title ?? id) : id)
-  const filtered = q.trim() ? ids.filter((id) => labelOf(kind, id).toLowerCase().includes(q.toLowerCase())) : ids
+  const filtered = q.trim() ? baseIds.filter((id) => labelOf(kind, id).toLowerCase().includes(q.toLowerCase())) : baseIds
 
   const empty = !tokenIds.length && !compIds.length
   return (
     <div style={{ background: 'var(--color-background)', color: ink, minHeight: fillViewport ? '100dvh' : undefined, fontFamily: mono, padding: '2rem 1.75rem 4rem' }}>
       <div style={{ maxWidth: 1180, margin: '0 auto' }}>
         <ReportIntro
-          what="One place to answer 'where did I use this?'. Pick a token, component, or page and see its full context — what uses it and what it uses. Every related name is clickable, so you walk the graph (token → component → its other tokens) without leaving."
+          what="One place to answer 'where did I use this?'. Pick a token, component, or page and see its full context — what uses it and what it uses. Filter tokens by lane (color · typography · scale) to read the whole type system or palette at once. Every related name is clickable, so you walk the graph (token → component → its other tokens) without leaving."
           source={{ file: 'component-pages.json', skill: 'sb-inventory' }}
           pipeline={[
             { skill: 'sb-inventory', role: 'tokens · component usage' },
@@ -94,10 +116,13 @@ export function UsageExplorer({ fillViewport = true, initialKind, initialId }: U
           </p>
         ) : (
           <>
-            <Tabs kind={kind} setKind={(k) => { setKind(k); setQ('') }} counts={{ token: tokenIds.length, component: compIds.length, page: pageIds.length }} />
+            <Tabs kind={kind} setKind={(k) => { setKind(k); setQ(''); setCat('all') }} counts={{ token: tokenIds.length, component: compIds.length, page: pageIds.length }} />
             <div style={{ display: 'flex', gap: 18, flexWrap: 'wrap', alignItems: 'flex-start', marginTop: 14 }}>
               <div style={{ flex: '0 0 280px', minWidth: 240 }}>
-                <input value={q} onChange={(e) => setQ(e.target.value)} placeholder={`Filter ${kind}s…`}
+                {kind === 'token' && tokenCats.length > 1 && (
+                  <CatFilter cats={tokenCats} value={cat} counts={catCounts} onChange={setCat} />
+                )}
+                <input value={q} onChange={(e) => setQ(e.target.value)} placeholder={`Filter ${kind === 'token' && cat !== 'all' ? cat + ' ' : ''}${kind}s…`}
                   style={{ width: '100%', boxSizing: 'border-box', fontFamily: mono, fontSize: 12, padding: '7px 10px', borderRadius: 8, border: `1px solid ${line}`, background: surface, color: ink, marginBottom: 8 }} />
                 <List ids={filtered} kind={kind} sel={sel} labelOf={labelOf} onPick={(id) => setSel({ kind, id })} tokenValues={tokenValues} />
               </div>
@@ -123,6 +148,27 @@ function Tabs({ kind, setKind, counts }: { kind: Kind; setKind: (k: Kind) => voi
       {(['token', 'component', 'page'] as Kind[]).map((k) => (
         <button key={k} type="button" onClick={() => setKind(k)} style={tabBtn(k === kind)}>
           {k}s <span style={{ opacity: 0.6 }}>{counts[k]}</span>
+        </button>
+      ))}
+    </div>
+  )
+}
+
+// Preferred lane order for the token category filter; only lanes actually present render.
+const CAT_ORDER = ['color', 'typography', 'scale', 'shadow', 'other', 'scalar']
+const catBtn = (active: boolean): CSSProperties => ({
+  fontFamily: mono, fontSize: 10.5, padding: '3px 9px', borderRadius: 999, cursor: 'pointer',
+  border: `1px solid ${active ? brand : line}`, color: active ? ink : dim,
+  background: active ? 'color-mix(in oklab, currentColor 6%, transparent)' : 'transparent', fontWeight: active ? 700 : 400,
+})
+// In-view lane filter for the token list — pick `typography` to read the whole type system in one place,
+// `color` for the palette, etc. Lanes + counts are derived from the data; it renders only when >1 lane exists.
+function CatFilter({ cats, value, counts, onChange }: { cats: string[]; value: string; counts: Record<string, number>; onChange: (c: string) => void }): ReactElement {
+  return (
+    <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap', marginBottom: 8 }}>
+      {['all', ...cats].map((c) => (
+        <button key={c} type="button" onClick={() => onChange(c)} style={catBtn(c === value)} title={`${c} tokens`}>
+          {c}{counts[c] != null && <span style={{ opacity: 0.55, marginLeft: 4 }}>{counts[c]}</span>}
         </button>
       ))}
     </div>
@@ -168,17 +214,19 @@ function Detail({ sel, components, tokens, pages, go, linkFor }: {
     const meta = TOKEN_META[sel.id]
     if (!t) return <div style={card}><Header eyebrow="token" title={sel.id} meta="not in the usage graph (0 references resolved)" /></div>
     const liveVal = liveVals[sel.id]
+    const utility = isUtility(sel.id)
     return (
       <div style={card}>
-        <Header eyebrow={`token · ${tokenCategory(sel.id)}`} title={sel.id}
-          meta={`${t.count} references${meta?.mapsTo ? ` · maps to ${stripTok(meta.mapsTo)}` : ''}`}
+        <Header eyebrow={`${utility ? 'utility' : 'token'} · ${tokenCategory(sel.id)}`} title={sel.id}
+          meta={`${t.count} references${utility ? ' · Tailwind default' : ''}${meta?.mapsTo ? ` · maps to ${stripTok(meta.mapsTo)}` : ''}`}
           swatch={isColor(sel.id) ? `var(${sel.id})` : undefined} />
-        {/* The token's actual computed value (+ preview), read live off the themed <html>. */}
+        {/* A declared token shows its live computed value off the themed <html>; a Tailwind-default utility
+            has no custom property to resolve, so it reads as the class it is (applied as a className). */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 0', borderTop: `1px solid ${line}` }}>
-          <div style={{ flex: '0 0 108px', fontSize: 9.5, textTransform: 'uppercase', letterSpacing: '0.06em', color: dim, opacity: 0.75 }}>value</div>
+          <div style={{ flex: '0 0 108px', fontSize: 9.5, textTransform: 'uppercase', letterSpacing: '0.06em', color: dim, opacity: 0.75 }}>{utility ? 'applied as' : 'value'}</div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1, minWidth: 0 }}>
-            <TokenPreview token={sel.id} size={18} />
-            <code style={{ fontFamily: mono, fontSize: 12, color: ink, wordBreak: 'break-all' }}>{liveVal || <span style={{ color: dim, fontStyle: 'italic' }}>not resolved on :root</span>}</code>
+            {!utility && <TokenPreview token={sel.id} size={18} />}
+            <code style={{ fontFamily: mono, fontSize: 12, color: ink, wordBreak: 'break-all' }}>{utility ? `.${sel.id}` : (liveVal || <span style={{ color: dim, fontStyle: 'italic' }}>not resolved on :root</span>)}</code>
           </div>
         </div>
         <Lane label="components" count={t.components.length} covered={covComps(t.components)}>{t.components.length ? t.components.map(compChip) : <Muted>none resolved</Muted>}</Lane>

@@ -15,6 +15,11 @@ Writes .storybook/component-pages.json:
       pages[]    — routed surfaces that render <Name>, directly OR transitively via the render graph,
                    each { path, title, role, storyId }
       tokens[]   — the design tokens this component's file consumes (reverse of tokens[*].components).
+      isPage     — true ONLY when <Name>'s own def file IS a routed page surface (its file keys
+                   usage_pages). A page is mounted by the router as a config value ({ component: X }),
+                   never as JSX — so callSites/props are 0 by construction (accurate, not missing).
+      route      — the path that page serves (e.g. "/scheduler"); present iff isPage. NOT folded into
+                   pages[] (a page appearing on itself reads circular) — it's the route it *serves*.
   } },
     tokens:    { <--token>: { category, count, components[], pages[] } }  — forward "where is this token used".
     fileIndex: { <src file>: { component, kind, pages[] } }  — path-keyed projection of the same graph,
@@ -69,6 +74,23 @@ for nm in usage:
     name2file.setdefault(nm, None)
     kind_of.setdefault(nm, "component")
 
+# basename → PascalCase export (button.tsx → Button; course-card.tsx → CourseCard). Defined here because
+# both the render-graph backfill below and the fileIndex projection later resolve files the same way.
+def derive_name(path):
+    base = os.path.splitext(os.path.basename(path))[0]
+    return "".join(p[:1].upper() + p[1:] for p in re.split(r"[-_.]", base) if p)
+
+# Backfill def files for components the inventory's `real` list missed (it buckets most under `usage`).
+# Every render-site path in usage[*].files IS the def file of the component that file declares (one
+# component per file), so derive that name and fill name2file when it's still unknown. Without this the
+# render graph below only resolves the handful of components in inventory.real → parents/children stay
+# empty for the long tail even though usage[*].files carries the edges. Mirrors fileIndex's resolution.
+for u in usage.values():
+    for f in (u.get("files", []) or []):
+        nm = file2name.get(f) or derive_name(f)
+        if name2file.get(nm) is None:
+            name2file[nm] = f
+
 # ── Render graph (one level), composed from usage[*].files ──
 # B is a CHILD of A  ⟺  A's own file appears among the files where <B> is rendered.
 children, parents = {}, {}
@@ -116,6 +138,61 @@ for page_file, direct in usage_pages.items():
         if c in comp_pages:
             comp_pages[c].append(meta)
 
+# ── Persistent layout-shell chrome: pages that flow in via {children}/<Outlet>, not JSX nesting ──
+# A page mounted as <AppLayout>{page}</AppLayout> or through a router <Outlet/> arrives as a PROP/slot,
+# invisible to the static JSX render graph above — so the app shell and its nav chrome (Header, Sidebar,
+# NavMain, …) resolve to ZERO pages even though they wrap every routed surface. Detect such shells and
+# propagate the pages they gate down their render subtree. Conservative by construction: a shell must
+# (1) currently map to no page, (2) have a render subtree (the chrome), (3) live ABOVE the page layer
+# (never rendered inside a page file), and (4) actually host a page slot in its own source.
+SLOT_RE = re.compile(r"<Outlet[\s/>]|\{\s*children\s*\}")
+def _read_source(nm):
+    f = name2file.get(nm)
+    p = os.path.join(ROOT, f) if f else None
+    if not p or not os.path.isfile(p):
+        return ""
+    try:
+        with open(p, encoding="utf-8") as fh:
+            return fh.read()
+    except OSError:
+        return ""
+# A shell mounted by a route guard wraps exactly the non-public routes. page_meta's role often can't
+# resolve for a page FILE (route access is keyed by path/name in the router table, not the page file),
+# so derive access by normalized-basename match against each route's name AND path, and drop only the
+# pages that resolve to an explicit "public" access (the auth shell, not the app shell, wraps those).
+def _norm(s):
+    return re.sub(r"[^a-z0-9]", "", (s or "").lower())
+_route_access = [(_norm(r.get("name")), _norm(r.get("path")), r.get("access")) for r in routes]
+def page_access(page_file):
+    base = re.sub(r"page$", "", _norm(os.path.splitext(os.path.basename(page_file))[0]))
+    if base:
+        for rn, rp, acc in _route_access:
+            if (rn and base in rn) or (rp and base in rp):
+                return acc
+    return None
+shell_pages = [page_meta(pf) for pf in usage_pages if (page_access(pf) or "").lower() != "public"]
+_rendered_in_page = set()
+for direct in usage_pages.values():
+    _rendered_in_page.update(direct)
+shells = [
+    nm for nm in name2file
+    if not comp_pages.get(nm)                # (1) maps to no page today
+    and children.get(nm)                     # (2) has a render subtree (chrome)
+    and nm not in _rendered_in_page          # (3) lives above the page layer
+    and SLOT_RE.search(_read_source(nm))     # (4) hosts a page slot ({children}/<Outlet>)
+]
+for s in shells:
+    seen, stack = set(), [s]
+    while stack:
+        c = stack.pop()
+        if c in seen:
+            continue
+        seen.add(c)
+        stack.extend(children.get(c, []))
+    for c in seen:
+        if c in comp_pages:
+            comp_pages[c].extend(shell_pages)
+
 # Dedup pages per component by path, keep a role if any page supplied one.
 def dedup_pages(refs):
     by_path = {}
@@ -126,6 +203,19 @@ def dedup_pages(refs):
         elif not cur.get("role") and r.get("role"):
             cur["role"] = r["role"]
     return sorted(by_path.values(), key=lambda r: r["path"])
+
+# A component IS a page when its own def file is a routed page surface (a key in usage_pages). Such a
+# component is mounted by the router as a config VALUE ({ component: X }), never as JSX — so it has 0
+# call sites / 0 props by construction (correct, not missing). Record that it's a page and the route it
+# serves so the per-component "Where it's used" block can show "serves /scheduler" instead of a
+# misleading "0 call sites · no routed page". Self-route is a distinct field, NOT folded into pages[]
+# (a page listed among "pages it appears on" reads circular). Normpath both sides — usage_pages keys
+# and name2file values may differ by a leading "./".
+page_file_by_norm = {os.path.normpath(pf): pf for pf in usage_pages}
+def page_route_for(nm):
+    f = name2file.get(nm)
+    pf = page_file_by_norm.get(os.path.normpath(f)) if f else None
+    return page_meta(pf)["path"] if pf else None
 
 # ── Assemble — real UI components only (drop scaffold/support; keep page hosts so the graph connects) ──
 components = {}
@@ -141,6 +231,10 @@ for nm in sorted(name2file):
         "children": children.get(nm, []),
         "pages": dedup_pages(comp_pages.get(nm, [])),
     }
+    route = page_route_for(nm)
+    if route:
+        components[nm]["isPage"] = True
+        components[nm]["route"] = route
 
 # ── File → {component, pages} index ──
 # Lets any usage view (a color/size token's `files`, a prop scan) resolve a raw `src/...` path to the
@@ -151,10 +245,7 @@ for nm in sorted(name2file):
 # most of which the inventory bucketed under `usage` (by name) rather than `real` (by file). So we resolve
 # each candidate file to a component the SAME way the inventory does — basename → PascalCase export — and
 # keep it when that name is a known component. This reaches the long tail `file2name` (real only) misses.
-def derive_name(path):
-    base = os.path.splitext(os.path.basename(path))[0]
-    return "".join(p[:1].upper() + p[1:] for p in re.split(r"[-_.]", base) if p)
-
+# (derive_name is defined above — shared with the render-graph backfill.)
 candidate_files = set(file2name)
 for u in usage.values():
     candidate_files.update(u.get("files", []) or [])           # render sites

@@ -8,9 +8,10 @@ import { ReportIntro } from "./ReportIntro"
  * it). The narrow docs column is ideal for this; the live clickable step-through lives in the Canvas tab.
  * Pure presentation, Storybook-only chrome.
  *
- * Shows (baked in): a "what is this?" provenance banner (ReportIntro, suppress with `hideIntro`) and a
- * collapsed "how to add a flow" authoring hint (suppress with `hideAuthoringHint`) — so a first-time
- * viewer learns what the map is, and a maintainer learns how to add their own.
+ * Shows: a "what is this?" provenance banner (ReportIntro — OFF by default, reachable on demand via
+ * setProvenance() / __SB_WB_PROVENANCE__; `hideIntro` hard-suppresses it even when the global is on)
+ * and a collapsed "how to add a flow" authoring hint (suppress with `hideAuthoringHint`) — so a
+ * first-time viewer learns what the map is, and a maintainer learns how to add their own.
  *
  * RULES (baked in — keep them):
  *   1. NO EMOJI. Step kinds render via the injectable icon slots below.

@@ -6,7 +6,7 @@ allowed-tools: Bash Read Glob Grep Write Edit
 license: MIT
 metadata:
   author: strongeron
-  version: '2.2.0'
+  version: '2.4.0'
   bundle: storybook-workbench
   vendor:
     scripts: [discover-runtime.py]
@@ -52,6 +52,13 @@ configured right?" question; the checklist below is enough for that):
   isn't enough: also theme the canvas root in `.storybook/preview-head.html` (`html, body, .sb-show-main {
   background: var(--color-background) }` + `html.dark { color-scheme: dark }`), or `centered` stories render a
   dark sliver in a white field and `padded`/`fullscreen` ones a white frame. (Snippet in `install-wizard.md` item 9.)
+- **bare-OKLCH / shadcn-channel token bridge** — for a project whose `:root` declares **bare channel
+  triplets** (`--background: 0.99 0.003 234`, no `oklch()` wrapper) under shadcn's `--background`/`--card`/…
+  names with **no `--color-*` namespace** reaching the iframe, the wrappers' `--color-*` chrome refs resolve
+  to nothing and every surface renders unstyled (the #1 "first run looked broken" gap on OKLCH design
+  systems). Detect it (dominant `css-vars`, channel-triplet values, no `--color-background`) and
+  **auto-generate the `--color-* → oklch(var(--bare))` bridge** into `.storybook/preview-head.html` for both
+  modes — same place/mechanism as the canvas-root theming above. Recipe + detection in `install-wizard.md` item 11.
 - **MCP wiring** — detect `@storybook/addon-mcp` + `.mcp.json`; wire if present.
 - **panel-visible default** — write `.storybook/manager.ts` with
   `addons.setConfig({ showPanel: true, panelPosition: 'bottom' })` so the Controls / Actions /

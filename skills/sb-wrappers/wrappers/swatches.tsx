@@ -9,6 +9,7 @@
  * Not a story file (no `.stories` suffix) — imported by the Foundations stories.
  */
 import { useEffect, useRef, useState } from "react"
+import { resolvePaint } from "./resolve-paint"
 
 // Neutral, themed color roles. Title/body use the app's foreground token (readable in
 // light AND dark) — no green brand tint on content. Fallbacks keep these usable if the
@@ -101,8 +102,12 @@ function useResolved(varName: string, prop: "backgroundColor" | "color") {
   const ref = useRef<HTMLDivElement>(null)
   const [value, setValue] = useState("")
   useEffect(() => {
-    if (ref.current) setValue(getComputedStyle(ref.current)[prop])
-  }, [prop])
+    const el = ref.current
+    if (!el) return
+    // For backgroundColor, resolvePaint paints + retries bare-channel tokens (see resolve-paint.ts)
+    // and leaves the swatch showing the real color. `color` isn't a painted probe — read it directly.
+    setValue(prop === "backgroundColor" ? resolvePaint(el, varName) : getComputedStyle(el).color)
+  }, [prop, varName])
   return { ref, value }
 }
 

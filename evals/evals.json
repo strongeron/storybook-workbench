@@ -1,6 +1,6 @@
 {
   "plugin": "storybook-workbench",
-  "version": "2.2.0",
+  "version": "2.3.0",
   "schema": "agentskills.io/evals (portable, registry-readable)",
   "note": "Thin public eval surface \u2014 11 cases distilled from the full harness so a registry or consumer can re-run a trust signal. The COMPLETE suite (40+ deterministic + LLM-judge cases across 26 gates, promptfoo configs, and cross-agent agent-smoke for Claude/Codex/Cursor) lives beside this file and runs via `evals/run-evals.sh`. Each eval runs the agent SKILL-LOADED and the assertions grade that response; a treatment-vs-control (bare-codebase) arm IS implemented (`run.sh --control`, with a fail-closed leak gate + neutral-cwd isolation) and measured the chain's value at +73\u201375pp on a 12-case cohort \u2014 see docs/specs/2026-06-12-ab-eval-harness.md. Re-run on every model update.",
   "evals": [

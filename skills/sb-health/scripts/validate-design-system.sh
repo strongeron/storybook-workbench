@@ -10,8 +10,10 @@
 #   3. scale-gap       — spacing scale has unexpected jumps (sorts numeric values, flags >2x gaps)
 #   4. unused-token    — declared in :root or @theme but never referenced
 #   5. design-md       — DESIGN.md colors cross-checked against code tokens (the brief can drift/lie)
-#   6. stylelint       — runs stylelint if config + binary present
-#   7. semantic        — emits a sub-agent prompt for LLM to check naming drift / inconsistency
+#   6. property-token  — (opt-in) valid token used on the WRONG property family, per a designer-owned
+#                        design-system/lint/colors.json — e.g. a container token used as text color
+#   7. stylelint       — runs stylelint if config + binary present
+#   8. semantic        — emits a sub-agent prompt for LLM to check naming drift / inconsistency
 #
 # Usage:
 #   validate-design-system.sh                  # all checks, write JSON
@@ -25,6 +27,8 @@
 #   2   bad invocation
 
 set -uo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 QUICK=false
 NO_STYLELINT=false
@@ -189,9 +193,38 @@ else
   echo "${DIM}  no design.md / DESIGN.md${RESET}"
 fi
 
-# ─── 6. stylelint (optional) ────────────────────────────────────────────────────
+# ─── 6. property → token-family correctness (opt-in; designer-owned rules) ────────
+# The semantic error grep can't see: a VALID, declared token used on the WRONG
+# property family (color: var(--color-container)). The which-family-on-which-property
+# logic is DESIGN intent, so it lives in a designer-owned rules file — not this script.
+# No rules file → no-op, so the zero-config default is preserved. Delegates to
+# check-property-tokens.py (handles glob property families, prefix tokens, alias remap,
+# per-line ignore, and a stale-rule drift guard). Findings are warning/info only, so an
+# opt-in never flips a green CI build red.
+echo "${DIM}[6/8] checking property→token-family rules (if configured)…${RESET}"
+PROP_RULES=""
+for cand in design-system/lint/colors.json .storybook/lint/colors.json; do
+  [[ -f "$cand" ]] && { PROP_RULES="$cand"; break; }
+done
+PROP_COUNT=0
+if [[ -n "$PROP_RULES" ]] && [[ -f "$SCRIPT_DIR/check-property-tokens.py" ]]; then
+  # The detector already prints the exact `kind\tsev\tfile\tline\tmsg\tfix` shape emit() uses,
+  # so append straight to the findings file. Do NOT pipe through `read -r … IFS=$'\t'`: a tab IFS
+  # collapses consecutive tabs (tab is whitespace), so a finding with empty file+line (e.g. the
+  # suppression tally) would shift its columns left and corrupt the JSON.
+  PROP_OUT=$(python3 "$SCRIPT_DIR/check-property-tokens.py" --rules "$PROP_RULES" "${SCAN_PATHS[@]}" 2>/dev/null || true)
+  if [[ -n "$PROP_OUT" ]]; then
+    printf '%s\n' "$PROP_OUT" >> "$TMP_FINDINGS"
+    PROP_COUNT=$(printf '%s\n' "$PROP_OUT" | grep -c . || true)
+  fi
+  echo "${DIM}  rules: ${PROP_RULES}; ${PROP_COUNT} finding(s)${RESET}"
+else
+  echo "${DIM}  no design-system/lint/colors.json — skipped (zero-config default)${RESET}"
+fi
+
+# ─── 7. stylelint (optional) ────────────────────────────────────────────────────
 if ! $QUICK && ! $NO_STYLELINT; then
-  echo "${DIM}[6/7] running stylelint if configured…${RESET}"
+  echo "${DIM}[7/8] running stylelint if configured…${RESET}"
   if [[ -f .stylelintrc ]] || [[ -f .stylelintrc.json ]] || [[ -f .stylelintrc.yml ]] || [[ -f stylelint.config.js ]] || [[ -f stylelint.config.mjs ]]; then
     if command -v npx >/dev/null 2>&1; then
       while IFS= read -r line; do
@@ -208,9 +241,9 @@ if ! $QUICK && ! $NO_STYLELINT; then
   fi
 fi
 
-# ─── 6. semantic sub-agent prompt (emit only) ───────────────────────────────────
+# ─── 8. semantic sub-agent prompt (emit only) ───────────────────────────────────
 if ! $QUICK && $EMIT_PROMPT; then
-  echo "${DIM}[7/7] emitting semantic-check sub-agent prompt…${RESET}"
+  echo "${DIM}[8/8] emitting semantic-check sub-agent prompt…${RESET}"
   echo
   echo "${BOLD}SEMANTIC SUB-AGENT PROMPT${RESET} (dispatch to validate naming drift, scale clarity, token nomenclature):"
   echo "────────────────────────────────────────────────────────────────────"
@@ -243,6 +276,7 @@ fi
 mkdir -p "$(dirname "$OUT_PATH")"
 
 CHECKS_RUN="raw-color, undefined-token, scale-gap, unused-token, design-md"
+[[ -n "$PROP_RULES" ]] && CHECKS_RUN="$CHECKS_RUN, property-token-family"
 $NO_STYLELINT || $QUICK || CHECKS_RUN="$CHECKS_RUN, stylelint"
 $EMIT_PROMPT && CHECKS_RUN="$CHECKS_RUN, semantic-prompt"
 

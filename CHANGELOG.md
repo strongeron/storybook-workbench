@@ -3,6 +3,31 @@
 Moved out of the SKILL.md frontmatter (where it had grown to ~3,000 words and scared people
 off installing). This is the full version history; skills no longer carry it inline.
 
+## 2.3.0 — 2026-06-20 — opt-in property→token-family lint (designer-owned color rules)
+
+- **sb-health gains a semantic color-correctness check.** `validate-design-system.sh` now runs a sixth
+  detector, `check-property-tokens.py`, that catches a *valid, declared* token used on the **wrong CSS
+  property family** — e.g. `color: var(--color-container)` (a container token used as text color). The
+  existing checks cover "no token at all" (raw-color) and "token doesn't exist" (undefined-token); this
+  closes the gap they structurally can't see: "real token, wrong slot." Scans CSS declarations and TSX
+  inline-style objects.
+- **The designer owns the rules, not the script.** The which-family-on-which-property logic lives in a
+  designer-editable `design-system/lint/colors.json` (`propertyTokens`: exact properties like `color`,
+  glob families like `background*`, token-PREFIX values). Ships with a JSON Schema so it's self-documenting
+  in any editor; `check-property-tokens.py --init` scaffolds the file + schema. Clean split: designer owns
+  `lint/colors.json`, dev owns the linter.
+- **Off by default — the zero-config default is preserved.** No rules file → no-op (the namespace-derived,
+  project-agnostic behavior is unchanged). Findings are `warning`/`info` only, so an opt-in never flips a
+  green CI build red. Escape hatches: `/* color-lint-alias: --from --to */` (file-level prefix remap) and
+  `/* color-lint-ignore */` (per-line, counted, nudges a refactor past 10 — the number growing is the signal).
+- **The rules file is treated as an untrusted claim, like `DESIGN.md`.** A new `property-rules-drift`
+  finding fires when a rule allows a token-prefix that no declared token matches, so a stale or wishful
+  config can't silently pass — or silently mis-flag.
+- **Eval coverage.** `test-health-detectors.sh` gains a property-token-family block with both-sides
+  boundaries: misuse fires · correct usage + alias-remapped silent · `color-lint-ignore` counted · drift
+  flagged · no-config no-op · warning-only keeps exit 0. Vendored as a self-contained skill (script +
+  schema + example), parity- and YAML-validated.
+
 ## 2.2.0 — 2026-06-16 — authoritative coverage, layout frame, cross-agent tracking & feedback layer
 
 - **Story coverage is authoritative, not a guess.** When Storybook is installed, `inventory-project.sh`
