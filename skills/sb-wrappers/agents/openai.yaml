@@ -1,0 +1,7 @@
+interface:
+  display_name: Storybook CSF3 — Wrappers
+  short_description: "Scaffold a Storybook-only wrapper — ABCanvas, StateGrid, AppFlowGraph, ProjectInventory, and more. Use for 'compare two designs', 'every state on one canvas', 'the full flow', 'track this decision', or 'scaffold wrappers'."
+  default_prompt: |
+    Scaffold a Storybook-only wrapper (ABCanvas/StateGrid/StateMatrix/StorySet/StoryStrip/AppFlowGraph/JourneyGraph/TokensCanvas/ProjectInventory/DecisionsDashboard, 14 across 4 tiers). Run scripts/scaffold-wrapper.sh --tier N | --flow | <Name>; icons.tsx (the shared icon set, no emoji) always travels and color comes from the app's CSS vars. Match the wrapper to the step: the data wrappers (ProjectInventory/DesignSystemHealth/TokenMatrix/AppFlowGraph/JourneyGraph) come AFTER their inventory/health/flows step has written the JSON (else they render empty); StateGrid/StateMatrix while writing a component story. Load references/wrapper-library.md.
+policy:
+  allow_implicit_invocation: true

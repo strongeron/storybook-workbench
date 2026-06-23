@@ -1,0 +1,7 @@
+interface:
+  display_name: Storybook CSF3 — Flows / App Map
+  short_description: "Map the whole app — routes, navigation edges, and persistent nav chrome, not just a screen list. Use for 'map the app', 'show the flow', 'app map', 'audit navigation', or 'how do screens connect'."
+  default_prompt: |
+    Capture the whole-app view: navigation flows, route map, journey maps — connections, not just screens. Run scripts/extract-flows.sh → flows.json (6 router flavors incl. inertia, edges[], navSources[] sidebar/header/footer). Sweep EVERY navigation source. Scaffold AppFlowGraph + JourneyGraph (scaffold-wrapper.sh --flow) — injectable icons, no emoji. Render at desktop+mobile width. Load references/flow-capture.md.
+policy:
+  allow_implicit_invocation: true

@@ -1,0 +1,7 @@
+interface:
+  display_name: Storybook CSF3 — Design-System Health
+  short_description: "Check design-system health for a React+Vite app — raw hex, undefined/unused tokens, scale gaps, DESIGN.md drift, and (opt-in) property→token-family misuse. Use for 'is my design system healthy', 'find raw colors', 'check tokens', or a mixed design system."
+  default_prompt: |
+    Audit design-system health. Run scripts/validate-design-system.sh → design-system-health.json (raw hex/rgba, undefined tokens, scale gaps, unused tokens, and DESIGN.md drift — colors a DESIGN.md claims but the code's tokens don't declare; treat DESIGN.md as a claim that can drift/lie like AGENTS.md). If a designer-owned design-system/lint/colors.json exists, it also flags property→token-family misuse (a valid token used on the wrong CSS property, e.g. a container token as text color) via scripts/check-property-tokens.py — opt-in, warning-only; scaffold it with `check-property-tokens.py --init`. Surface via DesignSystemHealth wrapper. For real token/component EXTRACTION defer to /ds-runbook; to reconcile or regenerate a drifted DESIGN.md hand off to the design-md skill. This skill only measures.
+policy:
+  allow_implicit_invocation: true

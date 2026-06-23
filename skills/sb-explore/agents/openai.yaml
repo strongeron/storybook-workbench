@@ -1,0 +1,7 @@
+interface:
+  display_name: Storybook CSF3 — Explore
+  short_description: "Iterate on a new or redesigned component in a sandboxed Explore story outside src/components/ (+ Figma), checked against a graduation gate. Use for 'prototype this', 'try a v2', 'explore from Figma', or net-new UI not ready to ship."
+  default_prompt: |
+    Sandboxed iteration on a new/redesigned component OUTSIDE src/components/ so app code never depends on it. Disk src/explore/<topic>/; title Explore/<topic>/<name>; tags ['explore','!autodocs','!test']. Wire parameters.design for Figma. Load references/labs-workflow.md (+ figma-to-storybook.md if Figma). Graduate via sb-ship when the 4-criteria gate is met.
+policy:
+  allow_implicit_invocation: true

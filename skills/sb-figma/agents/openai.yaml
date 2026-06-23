@@ -1,0 +1,19 @@
+interface:
+  display_name: Storybook CSF3 — Figma
+  short_description: "The Figma↔Storybook bridge, both directions, via the native Figma MCP. design→code: map foundation tokens (color/spacing/type) from Figma variables with design↔code parity + drift, and deliver approved Figma components (extract → build → embed), authoring stories via sb-stories' rules. code→design: build Code Connect mappings from components + stories + token parity + usage so Figma Dev Mode shows the real code. Use for 'sync my Figma tokens', 'map Figma variables to my design system', 'deliver this approved Figma design', 'check design↔code token parity', 'connect my components to Figma / code connect'. NOT for prototyping/iterating an undecided design (that's sb-explore)."
+  default_prompt: |
+    Deliver an APPROVED Figma design to production Storybook (not exploration — that's sb-explore).
+    Job 1 (tokens): pull-figma-variables.mjs (Figma MCP get_variable_defs → figma-variables.json) then
+    build-token-parity.mjs (resolve OKLCH→hex, map semantic→--token, emit .storybook/figma-token-parity.json
+    for color+spacing+type); wire Foundations/Colors|Tokens|Type stories to read figmaVar/figmaHex; report drift
+    (app-only roles are expected). Job 2 (components): MCP get_design_context + get_screenshot → audit existing
+    → build with approved tokens (stop&ask if a value has no token) → author the story FOLLOWING sb-stories'
+    rules (don't reinvent) → stamp node-id + parameters.design embed → validate light/dark/mobile. Ask for the
+    Figma file id, variables node id, and token CSS path if not given. If the user is still iterating, hand to
+    sb-explore. Job 3 (code→design, reverse): build-code-connect.mjs --components comps.json --parity
+    figma-token-parity.json [--usage component-usage.json] assembles Code Connect payloads (tokens enriched +
+    real props + variants + node-ids) → push via MCP send_code_connect_mappings (GATE the write);
+    generate_figma_design is opt-in/OFF. ALWAYS force the native tools (get_variable_defs/get_design_context/
+    get_metadata); get_screenshot is reference-only — never read tokens/props/layout off pixels.
+policy:
+  allow_implicit_invocation: true

@@ -11,6 +11,18 @@ clean and the whole audit is one removable folder.
 
 ---
 
+## See it live
+
+A published Chromatic demo runs the full pipeline on a real, vibe-coded React + Vite app:
+
+**[▶ Open the live Storybook demo →](https://main--6a26dda52fe4a57aa540d0ed.chromatic.com)**
+
+It's the actual output of these skills — a real-vs-slop component inventory, an app **route map**
+(37 screens across Public / User / Admin, scored by story coverage), design-system health, state
+grids, and CSF3 stories for only the states that matter.
+
+---
+
 ## Install
 
 Works on any agent that supports the [Agent Skills](https://agentskills.io) standard.

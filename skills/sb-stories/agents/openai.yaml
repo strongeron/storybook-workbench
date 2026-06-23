@@ -1,0 +1,7 @@
+interface:
+  display_name: Storybook CSF3 — Stories
+  short_description: "Write a CSF3 story for ONE React component, covering only its materially-different states (no Cartesian), with a factory when 3+ stories share a shape. Use for 'write a story for X', 'document this component', 'add a Storybook story'."
+  default_prompt: |
+    Write a CSF3 story for ONE component covering exactly its materially-different states (refuse Cartesian). Read .storybook/component-states.json (run scripts/extract-states.sh if missing) for the minimum set; factory when 3+ stories share a shape (scripts/extract-prop-shapes.sh + scaffold-factory.sh). Load references/with-mcp.md OR without-mcp.md (mutually exclusive). Gate with scripts/validate-stories.sh before done.
+policy:
+  allow_implicit_invocation: true

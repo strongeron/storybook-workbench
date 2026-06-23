@@ -47,6 +47,11 @@ const SEV: Record<FindingSeverity, { label: string; text: string; dot: string; i
 
 // The full catalog of what the audit detects — worst-first. `source` is the mechanism;
 // `example` is a representative finding shown when a project has none, to demonstrate the check.
+// NOTE: this is the STATIC design-system audit. RUNTIME accessibility — incl. live contrast on rendered
+// stories — is owned by `@storybook/addon-a11y` (axe), wired at setup (sb-setup). The `contrast` entry
+// below is the static-source counterpart (computed from declared token values, not rendered DOM); the two
+// are complementary. (FOX2-21 follow-up: once axe coverage is confirmed, the static contrast check may be
+// retired in favor of axe — tracked separately, not removed here.)
 const CATALOG: Array<{ kind: FindingKind; label: string; severity: FindingSeverity; source: string; blurb: string; example: { message: string; where: string } }> = [
   { kind: 'undefined-token', label: 'Undefined token', severity: 'error',   source: 'grep',         blurb: 'A component references var(--foo) that is never declared. Define the token, or fix the name.', example: { message: 'var(--color-primary) referenced but never declared', where: 'src/components/Header.tsx:42' } },
   { kind: 'contrast',        label: 'Contrast ratio',   severity: 'error',   source: 'APCA / WCAG',  blurb: 'A foreground / background pair fails WCAG / APCA. Adjust lightness until text is legible.', example: { message: 'Text #8a8a8a on #ffffff is 2.9:1, needs 4.5:1 (WCAG AA)', where: 'src/components/Card.tsx:18' } },

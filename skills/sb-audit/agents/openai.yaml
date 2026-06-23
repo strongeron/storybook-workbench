@@ -1,0 +1,7 @@
+interface:
+  display_name: Storybook CSF3 — Audit
+  short_description: "Periodic Storybook audit — naming-drift survey, archived/decision-board review, lifecycle tagging, usage refresh. Use for 'audit my Storybook', 'find drift', 'show pending decisions', or a periodic catalog health check."
+  default_prompt: |
+    Periodic catalog audit. Run scripts/audit-drift.sh (naming drift — '17 empty-state names'), audit-archived.sh (L1/L2/L3 preservation, HEAVY warning), find-stories-by-tag.sh (decision board). Seed .storybook/audit/findings.md (append-only; LOG-ONLY for out-of-scope prod issues — keep moving). Load references/anti-patterns.md when reviewing AI-generated stories.
+policy:
+  allow_implicit_invocation: true

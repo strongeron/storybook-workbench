@@ -1,0 +1,7 @@
+interface:
+  display_name: Storybook CSF3 — Ship
+  short_description: "Graduate ONE Explore experiment to a production component — preserve the experiment (cp, never git mv), pick new-vs-update, close the decision loop. Use for 'ship this', 'promote this experiment', 'graduate to production'."
+  default_prompt: |
+    Graduate ONE Explore experiment to production. PRESERVE the experiment — cp, NEVER git mv. Path A (new component → fresh production stories) or Path B (update existing in place / B2 _legacy). Close the decision loop IN PLACE (decision:chosen + parameters.decision). Confirm via scripts/find-stories-by-tag.sh decision:chosen. Load references/propagate-workflow.md FIRST.
+policy:
+  allow_implicit_invocation: true

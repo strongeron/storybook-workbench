@@ -1,0 +1,7 @@
+interface:
+  display_name: Storybook CSF3 — Inventory
+  short_description: "Audit a React+Vite app for real-vs-slop components (by actual imports), the dominant design system, and real prop-value usage at call sites. Use for 'what components do I have', 'which are dead', 'audit this vibe-coded app'."
+  default_prompt: |
+    Discover what's REAL vs slop. Run scripts/inventory-project.sh → .storybook/project-inventory.json, then CITE its fields (never recompute): components.realCount/real[] are the user's OWN domain components used in prod; vendorCount/byKind.vendor = shadcn components/ui primitives; moduleCount = types/helpers/hooks/lib/api; supportCount = test/scaffold. The real[] list is components only — not types/helpers. Surface via the ProjectInventory wrapper.
+policy:
+  allow_implicit_invocation: true

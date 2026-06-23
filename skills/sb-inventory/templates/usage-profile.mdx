@@ -1,0 +1,76 @@
+{/*
+  usage-profile.mdx — autodocs "Real usage in THIS app" page for one component's story group.
+  Drop next to a story as `<Component>.usage.mdx`, replace the two TODOs, and it renders the real
+  prop/value usage from `.storybook/component-usage.json` (written by extract-component-usage.sh).
+
+  Why: the story grid shows every state a component CAN have; this shows the states the audited app
+  ACTUALLY ships — so a shadcn Button's unused `danger`/`secondary` variants are visibly marked, not
+  silently padding the catalog. No human keeps it current: re-run extract-component-usage.sh and this
+  page reflects the new JSON on the next Storybook build.
+
+  Note: the <ReportIntro> provenance banner below is OFF by default (demo-only) — it renders only when
+  provenance is switched on (setProvenance(true) / globalThis.__SB_WB_PROVENANCE__). The usage table
+  always shows regardless.
+*/}
+
+import { Meta } from '@storybook/addon-docs/blocks';
+import { ReportIntro } from '../../.storybook/wrappers/ReportIntro';   {/* TODO: fix relative path to .storybook/wrappers/ReportIntro */}
+import usage from '../../component-usage.json';   {/* TODO: fix relative path to .storybook/component-usage.json */}
+
+<Meta title="Components/Button/Real usage" />   {/* TODO: set to "<Domain>/<Component>/Real usage" */}
+
+export const COMPONENT = 'Button';   {/* TODO: the component name as it appears at call sites */}
+
+export const U = (usage.components && usage.components[COMPONENT]) || null;
+
+<ReportIntro
+  what={<>How <strong>{COMPONENT}</strong> is actually used in <em>this</em> app — every prop passed, the literal values written at call sites, and the supported options the app never touches. Not a list of everything the component <em>can</em> do.</>}
+  source={{ file: 'component-usage.json', skill: 'sb-inventory' }}
+  refresh="extract-component-usage.sh"
+  generatedAt={usage.meta?.generatedAt}
+/>
+
+# {COMPONENT} — real usage in this app
+
+{U ? (
+  <>
+    <p>The app uses <strong>{COMPONENT}</strong> in <strong>{U.callSites}</strong> place(s) across{' '}
+    {U.files.length} file(s). Here is how each of its props is actually used — not every prop it supports.</p>
+
+    <p style={{ fontSize: 13, opacity: 0.75, lineHeight: 1.5 }}>
+      <strong>Times used</strong> — how many places set this prop ·{' '}
+      <strong>Values in code</strong> — the exact values written, and how often ·{' '}
+      <strong>Set from a variable</strong> — passed dynamically, so the value isn’t fixed in the code.
+    </p>
+
+    <table>
+      <thead><tr><th>Prop</th><th>Times used</th><th>Values in code</th><th>Set from a variable</th></tr></thead>
+      <tbody>
+        {Object.entries(U.props).map(([p, d]) => (
+          <tr key={p}>
+            <td><code>{p}</code></td>
+            <td>{d.count}×</td>
+            <td>{Object.keys(d.values).length
+              ? Object.entries(d.values).map(([v, c]) => `${v} (${c}×)`).join(', ')
+              : <em>— (always dynamic)</em>}</td>
+            <td>{d.exprCount ? `${d.exprCount}×` : '—'}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+
+    {U.declaredButUnused.length > 0 && (
+      <blockquote>
+        <strong>Declared but never used in this app:</strong>{' '}
+        {U.declaredButUnused.map((x) => <code key={x} style={{ opacity: 0.6 }}>{x}</code>).reduce((a, b) => [a, ', ', b])}
+        <br />The component supports these, but this app never uses them — dead options you can drop or deprioritize.
+      </blockquote>
+    )}
+
+    <p style={{ opacity: 0.6, fontSize: 12 }}>Counted automatically from the code (no manual edits).
+    Run <code>refresh-usage.sh</code> to update after the app changes.</p>
+  </>
+) : (
+  <p><em>No call sites for {COMPONENT} in <code>component-usage.json</code> — run
+  <code>extract-component-usage.sh</code>, or this component isn't rendered in the app (possible slop).</em></p>
+)}

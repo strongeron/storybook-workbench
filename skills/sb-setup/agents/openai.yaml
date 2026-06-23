@@ -1,0 +1,7 @@
+interface:
+  display_name: Storybook CSF3 — Setup
+  short_description: "Set up Storybook on a React+Vite app that has none — defer to `npx storybook ai setup`, then align viteFinal/providers/MCP and ask where stories live. Use for 'set up Storybook', 'install Storybook', or NO_STORYBOOK."
+  default_prompt: |
+    Set up Storybook on a React+Vite app when none exists. DEFER the bootstrap to `npx storybook ai setup` (Storybook 10.4), then apply only the align+verify layer (viteFinal plugin-strip, provider decorators, MCP wiring, theme switching via @storybook/addon-themes for themed projects, confirm the bundled @storybook/addon-a11y, adopt existing structure) from references/install-wizard.md. Then run sb-inventory.
+policy:
+  allow_implicit_invocation: true

@@ -13,7 +13,10 @@
  * comps.json — what the agent knows about each code component (component + its Figma node + story):
  *   [{ "component":"Button", "codeFile":"src/components/ui/button.tsx", "figmaNode":"295:37592",
  *      "story":"Components/Button", "tokens":["background/gray/600","text/gray/50"],
- *      "props":{"variant":"secondary"}, "variants":["default","secondary"] }]
+ *      "props":{"variant":"secondary"}, "variants":["default","secondary"],
+ *      "variantProperties":{"type":["root","nest-1","nest-2","nest-3"]},   // Figma variant prop → code prop
+ *      "modes":["Light","Dark"],                                          // Figma modes → theme dimension
+ *      "label":"React", "propAliases":{"type":"depth"} }]                  // optional: rename a Figma prop
  *   • figmaNode optional → a component WITHOUT one lands in reverseParity.componentsWithoutNode (map or generate).
  *   • tokens optional → looked up in the parity map and enriched with {figmaVar, value}; misses → unmappedTokens.
  *   • props/variants optional → real values; props fall back to component-usage.json when not given.
@@ -66,7 +69,19 @@ for (const c of comps) {
     return { name, figmaVar: e.figmaVar ?? null, value: e.figmaHex ?? e.codeHex ?? null }
   })
   const props = c.props ?? usage[c.component]?.props ?? {}
-  mappings.push({ component: c.component, codeFile: c.codeFile ?? null, figmaNode, story: c.story ?? null, props, tokens, variants: c.variants ?? [] })
+  // Figma variant properties (e.g. {type:["root","nest-1","nest-2","nest-3"]}) → code props of the same
+  // name with the value enum; Figma modes (e.g. ["Light","Dark"]) → the code's theme dimension. This is
+  // what lets Code Connect drive a variant-rich component (TreeView) from Figma's variant picker.
+  const variantProperties = c.variantProperties ?? {}
+  const modes = c.modes ?? []
+  const propMappings = Object.entries(variantProperties).map(([figmaProp, values]) => ({
+    figmaProp, codeProp: c.propAliases?.[figmaProp] ?? figmaProp, values: Array.isArray(values) ? values : [],
+  }))
+  mappings.push({
+    component: c.component, codeFile: c.codeFile ?? null, figmaNode, story: c.story ?? null,
+    props, tokens, variants: c.variants ?? [], variantProperties, modes, propMappings,
+    codeConnect: { label: c.label ?? 'Storybook', source: c.codeFile ?? null, componentName: c.component },
+  })
 }
 
 const result = {
@@ -79,6 +94,7 @@ const result = {
   },
 }
 writeFileSync(out, JSON.stringify(result, null, 2) + '\n')
-console.log(`build-code-connect: ${out} — ${mappings.length} mapping(s) ready for send_code_connect_mappings · ${componentsWithoutNode.length} without a Figma node · ${driftedTokens.length} drifted · ${unmappedTokens.size} unmapped token(s)`)
+const withVariants = mappings.filter((m) => m.propMappings.length).length
+console.log(`build-code-connect: ${out} — ${mappings.length} mapping(s) ready for send_code_connect_mappings · ${withVariants} with variant-prop mapping · ${componentsWithoutNode.length} without a Figma node · ${driftedTokens.length} drifted · ${unmappedTokens.size} unmapped token(s)`)
 if (componentsWithoutNode.length) console.log(`  no Figma node (map via sb-explore/sb-figma deliver, or opt-in generate_figma_design): ${componentsWithoutNode.join(', ')}`)
 if (unmappedTokens.size) console.log(`  tokens not in parity map (run Job 1 first?): ${[...unmappedTokens].join(', ')}`)

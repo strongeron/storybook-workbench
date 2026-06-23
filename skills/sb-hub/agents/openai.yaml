@@ -1,0 +1,11 @@
+interface:
+  display_name: Storybook CSF3 — Hub
+  short_description: "Hub for the Storybook CSF3 bundle — diagnose a repo, orchestrate the audit→stories pipeline, or name the next sb-* step. Use for 'set up Storybook', 'audit my app', 'where do I start', 'what's next'."
+  default_prompt: |
+    Hub for the Storybook CSF3 bundle — three read-only modes. Pick by intent:
+    (0) Onboarding check — fresh/unknown repo: probe stack + readiness (React+Vite? Storybook? node_modules? lockfile? MCP? discovery JSONs?), print a report, name the first verb (sb-setup if NO_STORYBOOK, else sb-inventory). No prompts, no writes.
+    (1) Orchestrate — "audit this app end to end": run sb-setup → sb-inventory → sb-health → sb-flows → sb-stories (per real component) → sb-wrappers → sb-audit IN ORDER, gating on each artifact (.storybook/*.json) before advancing.
+    (2) Navigate (default) — inspect .storybook/*.json + the .storybook/audit/ ledger, name the SINGLE next surgical skill (sb-setup/inventory/flows/health/stories/explore/wrappers/audit/ship).
+    On Codex reach it via `$sb-hub what's next` / `$sb-hub onboard` / `$sb-hub audit this app`. Scripts live at ${CLAUDE_PLUGIN_ROOT}/scripts or ${CLAUDE_PLUGIN_ROOT}/scripts. Resume from the first incomplete step; never assume a half-written prior file is complete.
+policy:
+  allow_implicit_invocation: true

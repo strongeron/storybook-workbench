@@ -66,6 +66,18 @@ configured right?" question; the checklist below is enough for that):
   keypress (or a dragged-closed divider) persists a "panel hidden" state in localStorage and
   reviewers/agents conclude the stories have no Controls. The Controls panel is where `sb-stories`'
   `argTypes` surface, so this is what makes that authoring work visible. (Snippet in `install-wizard.md`.)
+- **theme switching (themed projects) — wire `@storybook/addon-themes`, don't hand-roll a `globalTypes.theme`.**
+  If runtime discovery finds a theme mechanism (`next-themes`, a class-based `.dark`, or `data-theme`),
+  register `withThemeByClassName` so the toolbar toggles the **same `.dark` class** the canvas-root theming
+  (item 9) and the bare-OKLCH `--color-*` bridge (item 11) already key off — one switch re-skins every
+  surface, and the wrappers' live `getComputedStyle` re-read fires on the flip. Without it a themed app
+  opens with **no theme control at all** (the reviewer ends up hand-adding one — the gap this closes). Add
+  `@storybook/addon-backgrounds` only if you need surface-on-surface checks. Snippet in `install-wizard.md` item 12.
+- **accessibility is already installed — confirm, don't re-add.** Native `storybook init` bundles
+  `@storybook/addon-a11y` (axe per story, incl. contrast); the panel-visible default above surfaces its
+  Accessibility panel. Verify it's in `package.json` and the panel shows — runtime a11y/contrast is axe's
+  job, so `DesignSystemHealth`'s checks stay **static** (raw-hex / undefined / orphan / scale-gap),
+  complementary to axe, not a re-implementation of it.
 - **docs-page composition** — set `parameters.docs.page` in `preview.tsx` to the standard autodocs blocks
   with the `UsageSection` block **near the top**, so every component's (and `Foundations/Colors` /
   `Typography`'s) Docs opens with a "Real usage in this app" status band before the playground. It reads

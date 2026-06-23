@@ -115,7 +115,11 @@ from the Storybook side, fed by context the bundle already has — **no new scan
 
 1. **Gather** — for each component that has a story AND a Figma node (the `parameters.design` node-id from
    deliverable #8): its used tokens (from `figma-token-parity.json`), real prop values (from
-   `component-usage.json`), and variants (from the CSF3 stories). Assemble a small `comps.json`.
+   `component-usage.json`), variants (from the CSF3 stories), and — from `get_metadata` — its **Figma variant
+   properties** (`{type:[root,nest-1,nest-2,nest-3]}`) and **modes** (`[Light,Dark]`). Assemble a `comps.json`
+   (`variantProperties` + `modes` + optional `propAliases` to rename a Figma prop, e.g. `type→depth`).
+   `build-code-connect` maps each variant property → a code prop with its value enum, and carries the modes as
+   the theme dimension — so the Code Connect mapping drives a variant-rich component from Figma's variant picker.
 2. **Build the payload** — `build-code-connect.mjs --components comps.json --parity .storybook/figma-token-parity.json
    [--usage .storybook/component-usage.json] --out .storybook/code-connect.json`. It enriches each token with its
    `figmaVar` + value, canonicalizes node-ids, and emits a **reverse-parity report**: components with no Figma
