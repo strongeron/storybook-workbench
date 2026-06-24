@@ -78,9 +78,12 @@ const T = {
 }
 
 // Each kind = a semantic role from the app's tokens (oklch fallbacks keep it standalone). The icon
-// takes its circle's `ink`; the ring is derived from ink→surface by one formula (ringFor).
+// takes its circle's `ink`; the ring is derived from ink→surface by one formula (ringFor). Surfaces must
+// be THEME-AWARE: modal/end/action use semantic *-surface tokens the app flips in dark mode; screen has no
+// semantic brand-surface token, so it SYNTHESIZES one by mixing themed brand-500 into the themed surface —
+// never a fixed palette step like brand-50, which stays light in dark mode (the cream-circle bug).
 const KIND_META: Record<JourneyStepKind, { slot: keyof JourneyIcons; label: string; surface: string; ink: string }> = {
-  screen: { slot: "screen", label: "screen", surface: "var(--color-brand-50, oklch(0.95 0.03 152))",      ink: "var(--color-text-brand-primary, oklch(0.45 0.1 152))" },
+  screen: { slot: "screen", label: "screen", surface: "color-mix(in oklab, var(--color-brand-500, oklch(0.56 0.13 116)) 14%, var(--color-surface, oklch(0.985 0.004 155)))", ink: "var(--color-text-brand-primary, oklch(0.45 0.1 152))" },
   action: { slot: "action", label: "action", surface: "var(--color-surface, oklch(0.985 0.004 155))",     ink: "var(--color-muted-foreground, oklch(0.48 0.022 155))" },
   modal:  { slot: "modal",  label: "modal",  surface: "var(--color-warning-surface, oklch(0.96 0.03 85))", ink: "var(--color-warning-text, oklch(0.5 0.1 85))" },
   end:    { slot: "end",    label: "done",   surface: "var(--color-success-surface, oklch(0.95 0.04 152))", ink: "var(--color-success-text, oklch(0.45 0.12 152))" },
