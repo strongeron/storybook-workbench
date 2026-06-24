@@ -18,9 +18,9 @@ its **actual output** — what these skills produce:
 
 <a href="https://main--6a26dda52fe4a57aa540d0ed.chromatic.com">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset=".github/assets/storybook-cover-dark.png">
-    <source media="(prefers-color-scheme: light)" srcset=".github/assets/storybook-cover-light.png">
-    <img alt="Storybook Workbench audit demo — the App route map: 37 screens across Public / User / Admin, wired by navigation edges and scored by story coverage" src=".github/assets/storybook-cover-light.png">
+    <source media="(prefers-color-scheme: dark)" srcset=".github/assets/storybook-cover-dark.webp">
+    <source media="(prefers-color-scheme: light)" srcset=".github/assets/storybook-cover-light.webp">
+    <img alt="Storybook Workbench audit demo — the App route map: 37 screens across Public / User / Admin, wired by navigation edges and scored by story coverage" src=".github/assets/storybook-cover-light.webp">
   </picture>
 </a>
 
