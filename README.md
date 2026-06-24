@@ -13,8 +13,8 @@ clean and the whole audit is one removable folder.
 
 ## See it live
 
-A Chromatic demo runs the full pipeline on a real, vibe-coded React + Vite app. The cover below is
-its **actual output** — what these skills produce:
+A live Storybook these skills generated end-to-end on a real, vibe-coded React + Vite app — every view
+is their **output**, not a mockup. The cover below is one of them:
 
 <a href="https://main--6a26dda52fe4a57aa540d0ed.chromatic.com">
   <picture>
@@ -24,14 +24,14 @@ its **actual output** — what these skills produce:
   </picture>
 </a>
 
-**[▶ Open the live demo →](https://main--6a26dda52fe4a57aa540d0ed.chromatic.com)** — the published Storybook, redeployed from `main` on every merge, so the link never goes stale.
+**[▶ Open the live demo →](https://main--6a26dda52fe4a57aa540d0ed.chromatic.com)** — explore it panel by panel.
 
-**What's inside:**
-- **Component inventory** — real-vs-slop, detected from the app's actual imports.
-- **App route map** — 37 screens across Public / User / Admin, scored by story coverage.
-- **Design-system health** — colors, tokens, scales, and typography.
-- **State coverage** — every state on one canvas, hover states, per-role views, A/B compares.
-- **CSF3 stories** — only the materially-different states, no Cartesian blowup.
+**Each section is one skill's output:**
+- **Component inventory** *(sb-inventory)* — real-vs-slop, detected from the app's actual imports.
+- **App route map** *(sb-flows)* — 37 screens across Public / User / Admin, scored by story coverage.
+- **Design-system health** *(sb-health)* — colors, tokens, scales, and typography.
+- **State coverage** *(sb-wrappers)* — every state on one canvas, hover states, per-role views, A/B compares.
+- **CSF3 stories** *(sb-stories)* — only the materially-different states, no Cartesian blowup.
 
 ---
 
