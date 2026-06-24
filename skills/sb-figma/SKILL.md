@@ -9,9 +9,10 @@ metadata:
   version: '0.1.0'
   bundle: storybook-workbench
   vendor:
-    scripts: [capture-figma.mjs, pull-figma-variables.mjs, build-token-parity.mjs, build-code-connect.mjs]
-    wrappers: [TokenMatrix, TokensCanvas]
+    scripts: [capture-figma.mjs, pull-figma-variables.mjs, build-token-parity.mjs, build-code-connect.mjs, record-figma-delivery.py]
+    wrappers: [TokenMatrix, TokensCanvas, FigmaInventory]
     references: [figma-token-sync.md]
+    templates: [figma-inventory.stories.tsx]
 ---
 
 # sb-figma — Figma → production Storybook delivery
@@ -87,6 +88,9 @@ No other skill maps Figma *variables* to code tokens, so sb-figma owns the found
    Resolves OKLCH channel triplets → hex, maps each Figma `semantic/*` → the project's `--token`
    (following `var()` alias chains), and emits a `{ token: { figmaVar, figmaHex, mapsTo, drift } }` map for all
    three families.
+   Pass `figmaParity` to `TokenMatrix` (it reads `figma-token-parity.json` itself) to surface **drift**
+   right in the color table's issue column — `figma Δ` with `code #X vs figma #Y` on hover — so design↔code
+   parity lives next to the token, not only in `docs/figma-token-parity.md`.
 3. **Wire** the foundation stories — `Colors.stories.tsx` / `Tokens.stories.tsx` (+ a `Type` group) read
    `figma-token-parity.json` and pass `figmaVar`/`figmaHex` into `TokenMatrix` rows (and the spacing/type
    sections). The fields are optional — a project with no Figma file renders exactly as before.
@@ -107,6 +111,25 @@ No other skill maps Figma *variables* to code tokens, so sb-figma owns the found
    Cartesian), a factory when 3+ stories share a shape. Do **not** reinvent CSF3 rules; load `sb-stories`.
 5. **Stamp + embed** — node-id in a top-of-file comment, and `parameters.design` (see Shared plumbing).
 6. **Validate** — light / dark / mobile, screenshot-vs-implementation parity.
+0. **Size the delivery FIRST — chunk a big board into parts.** A multi-artboard feature (a whole flow,
+   a screen with many sections) blows past the MCP token budget and produces a "too long, what's the
+   status?" mega-pass. Split by **artboard / section**: deliver + validate + record one part, then the
+   next. The Figma Inventory (step 7) accretes stories across parts (union by id), so an incremental
+   delivery is first-class, not a workaround. Don't attempt the whole board in one turn.
+7. **Record the delivery in the Figma Inventory** — so the stories this feature created don't just scatter
+   across the taxonomy. Run the recorder (idempotent; re-run per delivery, stories union by id):
+   ```bash
+   "${CLAUDE_PLUGIN_ROOT:-${CLAUDE_PLUGIN_ROOT}}/scripts/record-figma-delivery.py" . \
+     --figma-url "<board url>" [--feature "<Name>"] --spec-url "<spec node url>" --node-ids 101-9717 \
+     --description "<one line>" \
+     --story "Hunts/Hunt Packs:hunts-hunt-packs--default:component"   # repeat per story you created
+   ```
+   Then ensure the root surface exists: scaffold once with `scaffold-wrapper.sh --figma`, drop the
+   `figma-inventory.stories.tsx` template (title `Figma Inventory`), add **one export per feature**
+   (`export const Hunts = { args: { feature: 'Hunts' } }`), and pin it to the top in `.storybook/preview`
+   via `options.storySort.order: ['Figma Inventory', '*']`. The `FigmaInventory` wrapper reads
+   `figma-inventory.json` and renders the index + each feature's board link + the stories it brought in.
+   (Spec: `docs/specs/2026-06-23-figma-feature-inventory.md`.)
 
 ### Job 3 — Connect: Storybook → Figma (the reverse direction, code→design)
 

@@ -58,6 +58,12 @@ The default Build mode. The component exists in `src/components/`; you write its
   And the **project needs exactly one `CssCheck`** (anti-pattern 33): one story asserting a real
   `getComputedStyle` token value, the only proof the shared preview loaded the app's CSS. Both come
   from `npx storybook ai setup`'s prompt; `validate-stories.sh` check 13 + the project tally enforce them.
+- **A "playground" / showcase story is Controls-driven, not click/hover.** If a reviewer asks "what is
+  this playground story — can I click or hover it?": a playground is the **default story with its Controls
+  panel** — you change `args` (variant, size, state) in the Controls tab and the canvas re-renders. It is
+  NOT canvas interaction; hover/focus/active live in a `StateGrid` interaction matrix (addon-pseudo-states),
+  and scripted click→assert flows live in a `play` function. So: Controls = try props · pseudo-states =
+  hover/focus columns · `play` = a real interaction. Say which one the story is.
 - **Is the Controls panel wired?** A component story must expose a usable Controls panel — it's the
   reviewer's prop sandbox and powers the autodocs ArgTypes table. The react-vite default
   (`react-docgen`) does NOT infer TS unions into selects, so declare `argTypes` for every enum/union
@@ -98,7 +104,10 @@ grep -q '@storybook/addon-mcp' package.json && test -f .mcp.json && echo WITH_MC
 Whatever the answer, **all stories go to that one location** — never a mix.
 
 Title (the in-Storybook path, separate from the file path): match `.storybook/preview.ts`
-`storySort.order`; else `Components/<Domain>/<Name>`.
+`storySort.order`; else `Components/<Domain>/<Name>`. An **Overview / Spec / hub** story is an entry
+point — pin it to the **top of its root** via `storySort.order` (a root-level hub first; a per-feature
+`Overview`/`Spec` first in its group's sub-order with a `'*'` tail), never let it sort alphabetically into
+the middle of the content it summarizes. See `references/directory-structure.md` → "Overview / spec / hub".
 
 ## Pages — real-page capture (Mode A)
 

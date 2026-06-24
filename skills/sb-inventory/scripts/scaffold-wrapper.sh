@@ -15,6 +15,7 @@
 #   scaffold-wrapper.sh --tier 3                     # CORE + EXTENDED + ADVANCED/3D (opt-in; needs peer deps)
 #   scaffold-wrapper.sh --tier 4                     # CORE + EXTENDED + DESIGN-SYSTEM (no 3D tier — the common case)
 #   scaffold-wrapper.sh --flow                       # FLOW mode (AppFlowGraph + JourneyGraph)
+#   scaffold-wrapper.sh --figma                      # FigmaInventory root surface (sb-figma deliveries)
 #   scaffold-wrapper.sh AppFlowGraph                 # specific wrappers only
 #   scaffold-wrapper.sh --all                        # everything incl. flow + design-system
 #   scaffold-wrapper.sh --list                       # list available wrappers
@@ -36,6 +37,7 @@ TIER_2=(StorySet StoryStrip TrackedDecision DecisionsDashboard)
 TIER_3=(ShaderCanvas R3FCanvas MotionStage)
 TIER_4=(TokensCanvas TokenMatrix DesignSystemHealth ProjectInventory ComponentUsage UsageExplorer IconMatrix)
 FLOW=(AppFlowGraph JourneyGraph)
+FIGMA=(FigmaInventory)
 
 # Wrappers with OPTIONAL peer deps. They are copied when explicitly requested, but are
 # NEVER added to the barrel's `export *` — a single re-export of one of these poisons the
@@ -51,14 +53,16 @@ SELECTED=()
 FORCE=false
 LIST=false
 WANT_FLOW=false
+WANT_FIGMA=false
 WANT_3D=false
 TARGET_DIR=".storybook/wrappers"
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --tier)   TIER="$2"; shift 2 ;;
-    --all)    TIER="4"; WANT_FLOW=true; WANT_3D=true; shift ;;
+    --all)    TIER="4"; WANT_FLOW=true; WANT_FIGMA=true; WANT_3D=true; shift ;;
     --flow)   WANT_FLOW=true; shift ;;
+    --figma)  WANT_FIGMA=true; shift ;;
     --force)  FORCE=true; shift ;;
     --list)   LIST=true; shift ;;
     --target) TARGET_DIR="$2"; shift 2 ;;
@@ -100,7 +104,7 @@ elif [[ "$TIER" == "4" ]]; then
   # intentionally EXCLUDED — those wrappers carry optional peer deps and must not be scaffolded
   # onto a non-3D app (the common case). Use --tier 3 or --all to opt into the 3D wrappers.
   TO_COPY=("${TIER_1[@]}" "${TIER_2[@]}" "${TIER_4[@]}")
-elif ! $WANT_FLOW; then
+elif ! $WANT_FLOW && ! $WANT_FIGMA; then
   echo "${YELLOW}No tier or wrapper names specified.${RESET}"
   echo "Run with --tier 1|2|3|4, --flow, --all, --list, or specific wrapper names."
   exit 2
@@ -114,6 +118,12 @@ fi
 # --flow adds the two flow wrappers to whatever was selected (or stands alone)
 if $WANT_FLOW; then
   for w in "${FLOW[@]}"; do
+    case " ${TO_COPY[*]:-} " in *" $w "*) ;; *) TO_COPY+=("$w") ;; esac
+  done
+fi
+# --figma adds the FigmaInventory root surface (sb-figma scaffolds it on first delivery)
+if $WANT_FIGMA; then
+  for w in "${FIGMA[@]}"; do
     case " ${TO_COPY[*]:-} " in *" $w "*) ;; *) TO_COPY+=("$w") ;; esac
   done
 fi

@@ -37,7 +37,7 @@ Don't hand-roll grid markup. Scaffold a typed wrapper.
 | "the full flow" / "ordered sequence" | `StoryStrip` / `StorySet` | 2 |
 | "shader / WebGL / 3D / keyframe motion" | `ShaderCanvas` / `R3FCanvas` / `MotionStage` | 3 |
 | "token source of truth" / "DS health" / "inventory" | `TokensCanvas` / `DesignSystemHealth` / `ProjectInventory` | 4 |
-| "icon coverage" / "which icons / what sizes" | `IconMatrix` | 4 |
+| "icon coverage" / "which icons / what sizes / **where is an icon used**" | `IconMatrix` | 4 |
 | "whole-app route map" / "journey map" | `AppFlowGraph` / `JourneyGraph` | flow |
 
 ## When in the flow (which wrapper, which step)
@@ -59,6 +59,11 @@ while writing a story. Suggest the matching wrapper as the next step once its in
 
 Don't scaffold a data wrapper before its step has produced the JSON — `scaffold-wrapper.sh` prints the
 generating script for each as a reminder.
+
+**States scattered across many stories → consolidate into ONE matrix.** When a component's states are
+spread over separate stories (a story per state — hard to scan, easy to drift), collapse them into a single
+`StateGrid` (all states) or `StateMatrix` (variants × states) so every state is reviewable on one canvas.
+This is the canonical fix for "the Detection header/list states are scattered — make a concise states view".
 
 **Real-usage overlay.** `StateGrid` / `StateMatrix` take an optional `usage` prop —
 `usage={usageJson.components.<Name>}` (from `.storybook/component-usage.json`) badges each variant/state

@@ -13,13 +13,19 @@ clean and the whole audit is one removable folder.
 
 ## See it live
 
-A published Chromatic demo runs the full pipeline on a real, vibe-coded React + Vite app:
+A Chromatic demo runs the full pipeline on a real, vibe-coded React + Vite app. The cover below is
+its **actual output** — what these skills produce:
 
-**[▶ Open the live Storybook demo →](https://main--6a26dda52fe4a57aa540d0ed.chromatic.com)**
+[![Storybook Workbench audit demo — the App route map: 37 screens across Public / User / Admin, wired by navigation edges and scored by story coverage](.github/assets/storybook-demo-cover.png)](https://main--6a26dda52fe4a57aa540d0ed.chromatic.com)
 
-It's the actual output of these skills — a real-vs-slop component inventory, an app **route map**
-(37 screens across Public / User / Admin, scored by story coverage), design-system health, state
-grids, and CSF3 stories for only the states that matter.
+**[▶ Open the live demo →](https://main--6a26dda52fe4a57aa540d0ed.chromatic.com)** — the published Storybook, redeployed from `main` on every merge, so the link never goes stale.
+
+**What's inside:**
+- **Component inventory** — real-vs-slop, detected from the app's actual imports.
+- **App route map** — 37 screens across Public / User / Admin, scored by story coverage.
+- **Design-system health** — colors, tokens, scales, and typography.
+- **State coverage** — every state on one canvas, hover states, per-role views, A/B compares.
+- **CSF3 stories** — only the materially-different states, no Cartesian blowup.
 
 ---
 

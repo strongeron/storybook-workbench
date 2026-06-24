@@ -104,3 +104,7 @@ export type { AppGraph, AppNode, AppEdge, Role, EdgeKind, Coverage, FlowIcons } 
 
 export { JourneyGraph } from './JourneyGraph';
 export type { Journey, JourneyStep, JourneyStepKind, JourneyIcons } from './JourneyGraph';
+
+// Figma — the root inventory of what each sb-figma delivery brought into Storybook (figma-inventory.json).
+export { FigmaInventory } from './FigmaInventory';
+export type { FigmaInventoryProps } from './FigmaInventory';

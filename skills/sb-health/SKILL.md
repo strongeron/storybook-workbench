@@ -36,7 +36,10 @@ CORE=${CLAUDE_PLUGIN_ROOT:-${CLAUDE_PLUGIN_ROOT}}
 
 ## What it checks
 
-- **raw-color** — hex/rgba/hsl literals in components (should be tokens)
+- **raw-color** — hex/rgba/hsl literals in components (should be tokens). When the literal's value EQUALS
+  an existing token's resolved value (e.g. `#005596` on a tile whose siblings use `bg-secondary` →
+  `--secondary` resolves to `#005596`), the fix is to **adopt that exact token**, not invent a new one —
+  the finding names the matching token when it can resolve one, so the fix is "replace with `--x`", not "add a token".
 - **undefined-token** — components reference `--foo` that's not declared
 - **scale-gap** — spacing/type scale has unexpected jumps
 - **unused-token** — declared but never referenced (var, Tailwind utility, or custom `@utility`).

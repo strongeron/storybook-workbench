@@ -136,8 +136,21 @@ export function UsageSection(): JSX.Element | null {
   if (lt.startsWith('foundations/typography')) return <FoundationWhereUsed prefixes={['--font', '--text', '--leading', '--tracking']} label="type" />;
   if (lt.startsWith('foundations/scales')) return <FoundationWhereUsed prefixes={['--radius', '--spacing', '--space', '--shadow', '--duration', '--z']} label="scale" />;
   if (lt.startsWith('foundations/')) return null;
-  // Pages/* — the real app page in isolation; explain what it is + where it's from (no prop table).
-  if (lt.startsWith('pages/')) return <PageIntro title={title} />;
+  // Pages/* — the real app page in isolation. Show its "Where it's used" map (page-aware ComponentContext:
+  // the route it serves, what it renders, the tokens it pulls — a page has 0 call sites by construction, so
+  // the block reads "serves /route · N renders", not a misleading "0"). The PageIntro provenance band ("what
+  // is this + where it's from") sits above it but stays OFF by default. A page docs page used to show
+  // NOTHING when provenance was off — the gap this closes (session drift: "I don't see Where it's used on
+  // Pages"). Resolve the page's own component from meta/title (it's a key in component-pages with isPage/route).
+  if (lt.startsWith('pages/')) {
+    const pageName = resolveName(meta);
+    return (
+      <>
+        <PageIntro title={title} />
+        {pageName && <ComponentContext name={pageName} usageExplorerStoryId="skill-audit--usage" />}
+      </>
+    );
+  }
 
   // The component's real usage is now ONE surface: the "Where it's used" map (pages it lands on, what
   // nests it, what it renders, the tokens it pulls). The old prop-value table was dropped — it was empty

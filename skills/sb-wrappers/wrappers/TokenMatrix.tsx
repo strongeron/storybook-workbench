@@ -85,6 +85,21 @@ if (HEALTH) {
     for (const n of names) (HEALTH_BY_TOKEN[n] ??= []).push(f)
   }
 }
+
+// ── sb-figma parity feed (optional) — design↔code token drift from build-token-parity.mjs ──────
+// The same figma-token-parity.json the foundation stories read: per token, the Figma variable it maps to,
+// both resolved values, and whether they DRIFT. Surfaced in THIS table (opt-in via `figmaParity`) so the
+// design↔code answer lives next to the token, not only in docs/figma-token-parity.md (session ask: "can we
+// have parity into the color wrapper to show all in one place?"). Keyed without `--` to match flagsFor.
+interface ParityEntry { figmaVar?: string; figmaHex?: string; codeHex?: string; mapsTo?: string; drift?: boolean }
+interface ParityReport { color?: Record<string, ParityEntry>; spacing?: Record<string, ParityEntry>; type?: Record<string, ParityEntry>; appOnly?: string[]; figmaOnly?: string[] }
+const parityGlob = (import.meta as { glob: <T>(p: string, o?: { eager: boolean }) => Record<string, T> })
+  .glob<ParityReport>('../../.storybook/figma-token-parity.json', { eager: true })
+const PARITY: ParityReport | null = Object.values(parityGlob)[0] ?? null
+const PARITY_BY_TOKEN: Record<string, ParityEntry> = {}
+if (PARITY) for (const section of [PARITY.color, PARITY.spacing, PARITY.type]) {
+  for (const [tok, e] of Object.entries(section ?? {})) PARITY_BY_TOKEN[tok.replace(/^--/, '')] = e
+}
 const KIND_LABEL: Record<string, string> = {
   'unused-token': 'unused', 'raw-color': 'raw color', 'undefined-token': 'undefined',
   'scale-gap': 'scale gap', 'naming-drift': 'naming drift',
@@ -133,6 +148,9 @@ export interface TokenMatrixProps {
   /** show the per-token Health column + health summary. OFF by default — health has a dedicated home
    *  (Foundations/Health → DesignSystemHealth), and per-token health duplicates the Adoption column. */
   health?: boolean
+  /** surface Figma↔code token parity (drift) in the issue column, from figma-token-parity.json
+   *  (sb-figma's build-token-parity.mjs). OFF by default. Shares the column with `health`. */
+  figmaParity?: boolean
 }
 
 type ValueMap = Record<string, string>
@@ -276,6 +294,8 @@ interface Flag {
   label: string
   severity: Severity
   kind?: string
+  /** explicit tooltip (e.g. a figma-drift flag spells out "code #X vs figma #Y"). */
+  title?: string
 }
 const SEV_COLOR: Record<Severity, string> = { error: RED, warning: AMBER, info: dim }
 const SBHEALTH_KINDS = new Set(['raw-color', 'unused-token', 'undefined-token', 'scale-gap'])
@@ -291,11 +311,12 @@ function HealthCell({ flags }: { flags: Flag[] }): ReactElement {
         <span
           key={f.label}
           title={
-            f.kind === 'unused'
-              ? 'live scan: 0 references (utilities + var()) across real pages/components; sb-health did not flag it'
-              : f.kind
-                ? SBHEALTH_KINDS.has(f.kind) ? `sb-health: ${f.kind}` : f.kind
-                : undefined
+            f.title
+              ?? (f.kind === 'unused'
+                ? 'live scan: 0 references (utilities + var()) across real pages/components; sb-health did not flag it'
+                : f.kind
+                  ? SBHEALTH_KINDS.has(f.kind) ? `sb-health: ${f.kind}` : f.kind
+                  : undefined)
           }
           style={{
             fontFamily: mono,
@@ -338,7 +359,10 @@ function UsageCell({ uses, usedIn, expanded, onToggle }: { uses: number; usedIn?
   )
 }
 
-export function TokenMatrix({ groups, eyebrow, title, generatedAt, hideIntro, usageExplorerStoryId, health = false }: TokenMatrixProps): ReactElement {
+export function TokenMatrix({ groups, eyebrow, title, generatedAt, hideIntro, usageExplorerStoryId, health = false, figmaParity = false }: TokenMatrixProps): ReactElement {
+  // The issue column shows when EITHER feed is on; flagsFor merges both. Parity drift reads in the same
+  // place as health findings, so the design↔code answer sits next to the token.
+  const showIssues = health || figmaParity
   const root = useRef<HTMLDivElement>(null)
   const [light, setLight] = useState<ValueMap>({})
   const [dark, setDark] = useState<ValueMap>({})
@@ -388,10 +412,15 @@ export function TokenMatrix({ groups, eyebrow, title, generatedAt, hideIntro, us
   // ("633 uses…" vs "0"), so echoing "in use"/"unused" in Health is pure duplication. We therefore drop
   // every `unused-token` finding: when uses>0 it's a false positive (the grep scanner can't see Tailwind
   // @theme-inline utilities), and when uses===0 the Adoption "0" already carries it.
-  const flagsFor = (token: string): Flag[] =>
-    (HEALTH_BY_TOKEN[token] ?? [])
+  const flagsFor = (token: string): Flag[] => {
+    const flags: Flag[] = (HEALTH_BY_TOKEN[token] ?? [])
       .filter((f) => f.kind !== 'unused-token')
-      .map((f) => ({ label: KIND_LABEL[f.kind] ?? f.kind, severity: f.severity, kind: f.kind }))
+      .map((f) => ({ label: KIND_LABEL[f.kind] ?? f.kind, severity: f.severity as Severity, kind: f.kind }))
+    // Figma parity drift (opt-in) reads as one more finding, with the two values spelled out on hover.
+    const p = figmaParity ? PARITY_BY_TOKEN[token] : undefined
+    if (p?.drift) flags.push({ label: 'figma Δ', severity: 'warning', kind: 'figma-drift', title: `figma drift: code ${p.codeHex ?? '?'} vs figma ${p.figmaHex ?? '?'}${p.figmaVar ? ` (${p.figmaVar})` : ''}` })
+    return flags
+  }
 
   // Summary — real findings only, so it agrees with the rows.
   const flaggedTokens = allTokens.filter((t) => flagsFor(t).length > 0).length
@@ -472,7 +501,7 @@ export function TokenMatrix({ groups, eyebrow, title, generatedAt, hideIntro, us
                 <col style={{ width: '19%' }} />
                 <col style={{ width: '19%' }} />
                 <col style={{ width: '22%' }} />
-                {health && <col style={{ width: '14%' }} />}
+                {showIssues && <col style={{ width: '14%' }} />}
               </colgroup>
               <thead>
                 <tr>
@@ -480,7 +509,7 @@ export function TokenMatrix({ groups, eyebrow, title, generatedAt, hideIntro, us
                   <th style={thBase}>Light value</th>
                   <th style={thBase}>Dark value</th>
                   <th style={thBase}>Adoption</th>
-                  {health && <th style={thBase}>Health</th>}
+                  {showIssues && <th style={thBase}>{health && figmaParity ? 'Health · Figma' : health ? 'Health' : 'Figma'}</th>}
                 </tr>
               </thead>
               <tbody>
@@ -499,11 +528,11 @@ export function TokenMatrix({ groups, eyebrow, title, generatedAt, hideIntro, us
                         <td style={td}><ColorValue token={r.token} value={light[r.token]} mode="light" /></td>
                         <td style={td}><ColorValue token={r.token} value={dark[r.token]} mode="dark" /></td>
                         <td style={td}><UsageCell uses={uses} usedIn={r.usedIn} expanded={expanded} onToggle={() => toggleFiles(r.token)} /></td>
-                        {health && <td style={td}><HealthCell flags={flagsFor(r.token)} /></td>}
+                        {showIssues && <td style={td}><HealthCell flags={flagsFor(r.token)} /></td>}
                       </tr>
                       {expanded && files.length > 0 && (
                         <tr>
-                          <td colSpan={health ? 5 : 4} style={{ ...td, paddingTop: 0 }}>
+                          <td colSpan={showIssues ? 5 : 4} style={{ ...td, paddingTop: 0 }}>
                             <div style={{ padding: '2px 0 8px' }}>
                               <UsageDetail files={files}
                                 seeAllHref={usageExplorerStoryId ? `/?path=/story/${usageExplorerStoryId}&args=focus:--${r.token}` : undefined} />

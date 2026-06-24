@@ -172,6 +172,28 @@ const preview: Preview = {
 
 The bracketed sub-arrays control sub-ordering. Without them, sub-groups are alphabetical by default.
 
+### Overview / spec / hub stories sort to the TOP — never nested below their content
+
+An **Overview**, **Spec**, or feature-**hub** story is an *entry point* — the thing a reviewer opens first
+to get oriented and reach the rest. It must sit at the **top of its root**, not buried as one alphabetical
+leaf among the components it summarizes. Two cases:
+
+- **A root-level hub** (e.g. `Figma Inventory`, a per-delivery overview) → list its root **first** in
+  `order`, before `Foundations`/`Components`/`Pages`:
+  ```ts
+  order: ['Figma Inventory', 'Foundations', 'Components', 'Pages', 'Flows', 'Labs']
+  ```
+- **A per-feature overview** inside a group (`Detections/Overview`, `Hunts/Spec`) → put `Overview`/`Spec`
+  **first** in that group's sub-order so it precedes the feature's components:
+  ```ts
+  order: ['Detections', ['Overview', 'Spec', '*'], 'Components', …]   // '*' = everything else, alphabetical
+  ```
+
+Why this is a rule and not a preference: a feature delivered from Figma (sb-figma) or a multi-screen flow
+scatters into many stories; if the overview sorts alphabetically it lands in the *middle* of its own
+children and reads as just another leaf — the reviewer can't find "start here". Pin it to the top. The
+`'*'` sentinel lets you order only the entry points and leave the rest alphabetical.
+
 ## Step 4 — Apply consistently
 
 Every new `.stories.tsx` file should:

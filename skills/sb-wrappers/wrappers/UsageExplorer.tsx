@@ -2,8 +2,10 @@
  * UsageExplorer — the one "where is this used?" surface. Pick a token, a component, or a page and see its
  * FULL bidirectional context (no cap): a token → the components & pages that consume it; a component → the
  * tokens it uses, the pages it renders on, and its parents/children; a page → its components and the tokens
- * they pull in. Every related entity is a chip you can click to jump to it — so you walk the graph
- * (token → component → its other tokens → another component) without leaving the view.
+ * they pull in. A related entity with a STORY is a chip that opens its render view (click anywhere on the
+ * pill, not just the ↗); a token — or a not-yet-documented component/page — is a chip that walks the graph
+ * (token → component → its other tokens) in place. The left list is the always-available way to focus any
+ * entity without leaving.
  *
  * Reads ONE store: `.storybook/component-pages.json` (build-component-pages.py), which now carries both
  * directions — `tokens[<tok>] = {components[], pages[]}` and `components[<name>].tokens[]`. Token VALUES
@@ -98,7 +100,7 @@ export function UsageExplorer({ fillViewport = true, initialKind, initialId }: U
     <div style={{ background: 'var(--color-background)', color: ink, minHeight: fillViewport ? '100dvh' : undefined, fontFamily: mono, padding: '2rem 1.75rem 4rem' }}>
       <div style={{ maxWidth: 1180, margin: '0 auto' }}>
         <ReportIntro
-          what="One place to answer 'where did I use this?'. Pick a token, component, or page and see its full context — what uses it and what it uses. Filter tokens by lane (color · typography · scale) to read the whole type system or palette at once. Every related name is clickable, so you walk the graph (token → component → its other tokens) without leaving."
+          what="One place to answer 'where did I use this?'. Pick a token, component, or page and see its full context — what uses it and what it uses. Filter tokens by lane (color · typography · scale) to read the whole type system or palette at once. A related component or page with a story is a chip that opens its render view — click anywhere on the pill, not just the ↗. A token (or a not-yet-documented component) walks the graph in place instead."
           source={{ file: 'component-pages.json', skill: 'sb-inventory' }}
           pipeline={[
             { skill: 'sb-inventory', role: 'tokens · component usage' },
