@@ -24,7 +24,7 @@ is their **output**, not a mockup. The cover below is one of them:
   </picture>
 </a>
 
-**[▶ Open the live demo →](https://main--6a26dda52fe4a57aa540d0ed.chromatic.com)** — explore it panel by panel.
+**[▶ Open the live demo →](https://main--6a26dda52fe4a57aa540d0ed.chromatic.com)** — real skill output on a real codebase, panel by panel.
 
 **Each section is one skill's output:**
 - **Component inventory** *(sb-inventory)* — real-vs-slop, detected from the app's actual imports.
