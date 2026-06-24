@@ -16,7 +16,13 @@ clean and the whole audit is one removable folder.
 A Chromatic demo runs the full pipeline on a real, vibe-coded React + Vite app. The cover below is
 its **actual output** — what these skills produce:
 
-[![Storybook Workbench audit demo — the App route map: 37 screens across Public / User / Admin, wired by navigation edges and scored by story coverage](.github/assets/storybook-demo-cover.png)](https://main--6a26dda52fe4a57aa540d0ed.chromatic.com)
+<a href="https://main--6a26dda52fe4a57aa540d0ed.chromatic.com">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset=".github/assets/storybook-cover-dark.png">
+    <source media="(prefers-color-scheme: light)" srcset=".github/assets/storybook-cover-light.png">
+    <img alt="Storybook Workbench audit demo — the App route map: 37 screens across Public / User / Admin, wired by navigation edges and scored by story coverage" src=".github/assets/storybook-cover-light.png">
+  </picture>
+</a>
 
 **[▶ Open the live demo →](https://main--6a26dda52fe4a57aa540d0ed.chromatic.com)** — the published Storybook, redeployed from `main` on every merge, so the link never goes stale.
 
