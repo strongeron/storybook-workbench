@@ -139,10 +139,13 @@ export function UsageExplorer({ fillViewport = true, initialKind, initialId }: U
   )
 }
 
+// Active switcher = gently filled with brand green (theme-aware via --color-brand-500: light olive in
+// light mode, subtle olive in dark) and NO visible stroke — the border goes transparent but stays 1px so
+// there's no size jump vs the inactive chips. Label is bold dark on the fill; the count stays dimmed.
 const tabBtn = (active: boolean): CSSProperties => ({
   fontFamily: mono, fontSize: 11.5, padding: '5px 12px', borderRadius: 999, cursor: 'pointer',
-  border: `1px solid ${active ? brand : line}`, color: active ? ink : dim,
-  background: active ? 'color-mix(in oklab, currentColor 6%, transparent)' : 'transparent', fontWeight: active ? 700 : 400,
+  border: `1px solid ${active ? 'transparent' : line}`, color: active ? ink : dim,
+  background: active ? `color-mix(in oklab, ${brand} 16%, transparent)` : 'transparent', fontWeight: active ? 700 : 400,
 })
 function Tabs({ kind, setKind, counts }: { kind: Kind; setKind: (k: Kind) => void; counts: Record<Kind, number> }): ReactElement {
   return (
@@ -158,10 +161,11 @@ function Tabs({ kind, setKind, counts }: { kind: Kind; setKind: (k: Kind) => voi
 
 // Preferred lane order for the token category filter; only lanes actually present render.
 const CAT_ORDER = ['color', 'typography', 'scale', 'shadow', 'other', 'scalar']
+// Same active treatment as tabBtn — brand-green fill, transparent (size-preserving) border.
 const catBtn = (active: boolean): CSSProperties => ({
   fontFamily: mono, fontSize: 10.5, padding: '3px 9px', borderRadius: 999, cursor: 'pointer',
-  border: `1px solid ${active ? brand : line}`, color: active ? ink : dim,
-  background: active ? 'color-mix(in oklab, currentColor 6%, transparent)' : 'transparent', fontWeight: active ? 700 : 400,
+  border: `1px solid ${active ? 'transparent' : line}`, color: active ? ink : dim,
+  background: active ? `color-mix(in oklab, ${brand} 16%, transparent)` : 'transparent', fontWeight: active ? 700 : 400,
 })
 // In-view lane filter for the token list — pick `typography` to read the whole type system in one place,
 // `color` for the palette, etc. Lanes + counts are derived from the data; it renders only when >1 lane exists.
