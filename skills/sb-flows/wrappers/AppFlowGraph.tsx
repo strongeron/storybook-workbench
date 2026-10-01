@@ -430,6 +430,7 @@ export function AppFlowGraph({ graph, icons, generatedAt, hideIntro }: { graph: 
     <div style={{ fontFamily: "ui-sans-serif, system-ui, sans-serif", color: `var(--color-foreground, oklch(0.28 0.02 ${HUE}))`, display: "flex", flexDirection: "column", height: "100dvh", minHeight: 480 }}>
       {!hideIntro && (
         <ReportIntro
+          title="App route map"
           what="Every screen in the app and how they connect — links, redirects, forms, and the persistent nav chrome — not just a flat list of pages. Click a screen to walk its incoming and outgoing edges."
           source={{ file: "flows.json", skill: "sb-flows" }}
           pipeline={[{ skill: "sb-flows", role: "the route map" }, { skill: "sb-wrappers", role: "this view" }]}
@@ -440,7 +441,8 @@ export function AppFlowGraph({ graph, icons, generatedAt, hideIntro }: { graph: 
       {/* Header */}
       <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", flexWrap: "wrap", gap: 12, marginBottom: 8 }}>
         <div>
-          <div style={{ fontSize: 17, fontWeight: 650, letterSpacing: "-0.01em" }}>App route map</div>
+          {/* the page title comes from ReportIntro above; keep this one only when the intro is hidden */}
+          {hideIntro && <div style={{ fontSize: 17, fontWeight: 650, letterSpacing: "-0.01em" }}>App route map</div>}
           <div style={{ fontSize: 12.5, color: `var(--color-muted-foreground, oklch(0.5 0.02 ${HUE}))`, marginTop: 2 }}>
             {isFocus
               ? "Connections for one screen · click a neighbour to walk, drag to pan, scroll to zoom"
@@ -488,7 +490,7 @@ export function AppFlowGraph({ graph, icons, generatedAt, hideIntro }: { graph: 
         {/* One filter per facet — the kinds plus "Back" (a back-link, a Cancel/Back CTA, or router.back()),
             all the same toggle style. A back edge is governed by Back, not its mechanism kind. */}
         {(Object.keys(FACET_LABEL) as Facet[]).map((k) => (
-          <button key={k} onClick={() => setKinds((s) => ({ ...s, [k]: !s[k] }))} style={{ ...btn, opacity: kinds[k] ? 1 : 0.4, borderColor: facetColor(k), color: facetColor(k) }}
+          <button key={k} onClick={() => setKinds((s) => ({ ...s, [k]: !s[k] }))} style={{ ...btn, opacity: kinds[k] ? 1 : 0.4, borderColor: facetColor(k) }}
             title={k === "back" ? "Return / up navigation: a back-link, a Cancel/Back CTA, or imperative router.back()/navigate(-1)" : undefined}>
             <span style={{ width: 14, borderTop: `2px ${facetDashed(k) ? "dashed" : "solid"} ${facetColor(k)}`, display: "inline-block", marginRight: 5, verticalAlign: "middle" }} />
             {FACET_LABEL[k]}

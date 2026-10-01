@@ -3,6 +3,128 @@
 Moved out of the SKILL.md frontmatter (where it had grown to ~3,000 words and scared people
 off installing). This is the full version history; skills no longer carry it inline.
 
+## 2.4.0 — 2026-10-02 — Storybook 10.6, clearer reports, Figma both ways
+
+### Upgrade notes
+
+- **Storybook 10.6 is the baseline.** Storybook 10.6 renamed every MCP tool and dropped the old names,
+  so an agent following 2.3 on a 10.6 project calls tools that no longer exist. The skills now use the
+  new names; the old ones are listed in `storybook-surface.md` for projects still on addon-mcp 0.x.
+
+  | Before 10.6 | 10.6 |
+  |---|---|
+  | `list-all-documentation` | `docs-list` |
+  | `get-documentation` | `docs-show` |
+  | `get-documentation-for-story` | `docs-show-story` |
+  | `preview-stories` | `stories-preview` |
+  | `run-story-tests` | `test-run` |
+
+- **The "what is this?" card now shows on report pages by default** (inventory, health, usage explorer,
+  route map, flows, icons, tokens) and stays off on per-component Docs. Call `setProvenance(false)` in
+  `.storybook/preview.ts` to hide it everywhere (e.g. a client deliverable), or `setProvenance(true)`
+  to show it on Docs pages too. "Real usage" Docs pages scaffolded before 2.4 have a bare `<ReportIntro>`,
+  so the card appears there too: add `show={docsProvenance()}` to it, as the current template does.
+- **`sb-figma` Code Connect output changed.** `build-code-connect.mjs` now needs `--file <FILE_KEY>` and writes
+  `send` (the exact `send_code_connect_mappings` input), `context` and `reverseParity` instead of the old
+  `mappings[]` shape, which the Figma tool couldn't accept.
+- **Re-copy the wrappers** into existing projects (`scaffold-wrapper.sh --all`, or copy
+  `.storybook/wrappers/` from a fresh install) to get the layout, a11y and TypeScript fixes below.
+
+### Added
+
+- `shared/references/storybook-surface.md` — one place for version pins, MCP tool names, their
+  `npx storybook tools` equivalents and setup commands; the other references link to it.
+- The 10.6 tools in the story workflow: `stories-find-by-component` (component file → the stories that
+  render it), `stories-changed` (new/modified/related stories from the working tree) and `review-create`
+  (a curated review page, behind `experimentalReview`). CSS and token files have no stories, so token
+  blast radius stays with `sb-inventory`.
+- `ReportIntro` `title` prop and `ReportTitle`: every report reads title → card.
+- `IconMatrix` where-used: click an icon row for the components it lands in (×N, linked to their
+  stories), then every call site by size with its `file:line` and exact JSX.
+- `docsProvenance()` for Docs-page cards; `StorySet` and `DecisionsDashboard` also read
+  `.storybook/stories/`, sb-setup's default stories location.
+- `sb-figma` reads every Figma mode: `read-figma-variables.js` is a read-only `use_figma` script (all
+  collections and modes, aliases resolved, library ones too); `get_variable_defs` is the fallback. Parity
+  compares the default mode with `:root` and Dark with `.dark`, `[data-theme=dark]` or a dark `@media` block.
+- `sb-figma` tokens → Figma: `build-figma-variables.mjs` and `write-figma-variables.js` create or update a
+  Light + Dark collection with `use_figma`, dry run first, nothing deleted. A round trip on a live file: 0 drift.
+- `sb-figma` learns per project: what a run can't do goes to `.storybook/figma/gaps.json` with a suggested
+  fix (collision, weak match, unmapped name, unsupported value, unmapped variant value; missing token and
+  tool refused from the agent). The next run shows open gaps first and dates the fixed ones.
+  `report-issue.sh --gaps` drafts an issue with counts per kind only.
+- `sb-figma` project rules in `.storybook/workbench.json` (`workbench-settings.mjs --init`, with a JSON
+  Schema): token CSS path, dark selectors, Figma name → token map, ignore list, variant values, Code
+  Connect label. Flags win; a skill update never overwrites it. CONTEXT.md lists every extension point.
+- `sb-figma` preconditions (plan, seat, remote vs desktop server, rate limits; `whoami` on access errors)
+  and "Writing to Figma": `use_figma` by default, `generate_figma_design` only to capture a story page.
+
+### Changed
+
+- `sb-setup` defers to Storybook's 10.6 onboarding: `npm create storybook@latest`, then
+  `npx storybook skills setup` (`storybook ai setup` is deprecated in 10.6). Expected pins move to
+  `^10.6.0`; `@storybook/addon-mcp` is now versioned with Storybook.
+- Component Docs read "What is this?" card → one "Where it's used" heading (no autodocs underline) →
+  the collapsible map, whose row carries counts only.
+- Wrappers read project files from the root (`/.storybook/…`, `/src/…`), so they work from any location.
+- `sb-figma` follows Figma's current flows: design-to-code loads `figma-design-to-code` first, takes the
+  screenshot from `get_design_context`, reuses mapped components and handles assets as the response
+  describes; Code Connect goes `whoami` → `get_code_connect_suggestions` → `get_context_for_code_connect` →
+  confirm → `send_code_connect_mappings`, with Code Connect 2.x templates for prop-level snippets.
+- `sb-figma` name matching prefers two-part names (`red/600` → `--color-red-600`, Tailwind v4's `--color-*`
+  included) over the last word alone, marks last-word matches as guesses, and lists collisions instead of
+  letting the last Figma variable win.
+- `sb-figma` is now listed in `bundle.json` and versioned with the bundle (it said 0.1.0).
+
+### Fixed
+
+- `discover-runtime.py` is called with `--out .storybook/runtime.json`; without it the file both
+  `sb-setup` and `sb-stories` read was never written.
+- `sb-stories` notes that the dev server does not watch `.storybook/stories/`: restart Storybook after
+  adding, moving or deleting a story there, or MCP tools report "No story found".
+- `storyCoverage` is documented at its real path, `components.storyCoverage`.
+- `build-token-parity.mjs` read CSS last-declaration-wins across all selectors, so a `.dark` block silently
+  replaced the light value it compared against.
+- `sb-figma` docs: node ids (both forms accepted) and tool output formats described correctly; the
+  `record-figma-delivery.py` path and a dead `sb-explore` link fixed.
+- Accessibility, found by running a full a11y test suite on the demo: muted labels on the card and
+  usage chrome meet 4.5:1; `StateGrid`/`StateMatrix` no longer render an empty `<th>`; `TokenMatrix`'s
+  title is not a second banner landmark; inventory panels are `h2` under the page `h1`; route-map legend
+  labels use text color; usage badges meet contrast; faded "declared but unused" previews are `inert`.
+- TypeScript: `ShaderCanvas` (React 19 `useRef`, a null narrowing) and `R3FCanvas` (optional
+  `@react-three/*` peers no longer break `tsc` in projects without them).
+- The route map shows its title once.
+- `sb-figma` colours: shadcn-style HSL channels (`0 0% 100%`) were read as OKLCH; `rgb()`, `hsl()`, alpha,
+  `deg` and `none` are now read, and alpha counts as drift.
+- `sb-figma` CSS: declarations before a nested block or without a final `;` were lost; `:root:not(.dark)`
+  counted as dark and `:root, .dark` fed only the dark theme; `--css` with a plain file found nothing.
+  Escaped names (`--spacing-1\.5`) and `var(--x, fallback)` resolve.
+- `sb-figma` sizes compare in px (Figma `16` = `1rem`), and `spacing/1.5` keeps its decimal point.
+- `write-figma-variables.js` renames a lone "Mode 1" instead of adding a third mode, leaves Figma aliases
+  and type mismatches alone (and lists them), and treats colours equal at 8 bits as unchanged.
+- `workbench-settings.mjs` works through the symlinks skills install with; a broken `gaps.json` stops the
+  run instead of being wiped.
+- `IconMatrix` keeps `iconWrapper`, `iconConfigProps` and `customNames` (lost when the click-to-expand
+  view merged in); the row toggle collapses an open size cell and reports its state.
+- `UsageSection` reads `component-usage.json` from the project root, like the other wrappers; Pages docs
+  show one provenance card, not two; `inert` on unused previews works on React 18 too.
+
+### Maintainers
+
+- `publish.sh` stops when a skill fails to export (it used to drop the skill silently) and checks the
+  published count; `RELEASE.md` syncs the mirror with `rsync --delete`, checks for direct mirror edits
+  and confirms the tag landed.
+- `evals/scripts/check-storybook-drift.sh` fails when a Storybook project's tool list differs from
+  `storybook-surface.md`; opt-in eval gate via `SB_DRIFT_PROJECT=<project>`.
+- `demo.py` (not published): `status` / `diff` / `compare` / `sync` between the plugin and the live demo.
+  `sync` holds dependencies the demo has edited and stops when regeneration fails.
+- `bump.py` inserts the new CHANGELOG stub above the newest release, not above 2.0.0.
+- The sb-figma scripts create their output folder before writing (they crashed in a project with no
+  `.storybook/` yet).
+- `build.sh --check` sees `.mjs`/`.js`/`.json` citations (it only knew `.sh`/`.py`/`.md`), so an unbundled
+  `.mjs` script can no longer slip through; `test-figma-parity.sh` runs in `run-evals.sh`.
+
+---
+
 ## 2.3.0 — 2026-06-20 — opt-in property→token-family lint (designer-owned color rules)
 
 - **sb-health gains a semantic color-correctness check.** `validate-design-system.sh` now runs a sixth

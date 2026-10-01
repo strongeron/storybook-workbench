@@ -47,7 +47,7 @@ Rules: one recommendation, prerequisite-satisfied; surface the `ds-runbook` hand
 
 | Skill | Scope | Runs | Appends to ledger |
 |---|---|---|---|
-| `/sb-setup` | once | install probe; `install-wizard.md` + `npx storybook ai setup` if `NO_STORYBOOK`; MCP detect | setup state, MCP wired? |
+| `/sb-setup` | once | install probe; `install-wizard.md` + `npm create storybook@latest` / `storybook skills setup` if `NO_STORYBOOK`; MCP detect | setup state, MCP wired? |
 | `/sb-inventory` | repo, once | `inventory-project.sh` | real/dead counts, dominant DS, vendor/module buckets |
 | `/sb-flows` | repo | `extract-flows.sh` | routes / nav edges / persistent-nav sources |
 | `/sb-health` | story-side | `validate-design-system.sh` (+ scaffold `DesignSystemHealth`); defer extraction to `/ds-runbook` | health findings |

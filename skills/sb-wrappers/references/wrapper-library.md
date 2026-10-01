@@ -37,22 +37,25 @@ The unique value: **10 typed React components that ride on Storybook's native ca
 
 ### Orientation banners (support — auto-included like `icons.tsx`)
 
-Force-copied with every scaffold, not counted in the 18. `ReportIntro` gives a first-time viewer of the
-published Storybook **demo** the "what is this / where is it from" context — but that explains the
-plugin's own plumbing, which is noise in a real client deliverable, so it is **OFF by default**.
+Force-copied with every scaffold, not counted in the 18. `ReportIntro` tells whoever opens a page
+"what is this, which skill made it, from what file, how to refresh it". Default:
 
-**Reaching it on demand** (for when someone asks "where does this come from?"):
-- `setProvenance(true)` — or set `globalThis.__SB_WB_PROVENANCE__ = true` in `.storybook/preview.ts`,
-  a toolbar global, or at runtime → every banner appears.
-- `<ReportIntro show />` — reveal a single one without the global switch.
-- On the flow wrappers, `hideIntro` still **hard-suppresses** even when the global is on.
+- **Report pages — on.** Inventory, Health, Usage explorer, route map, flows, Icons, Tokens are generated
+  data; a teammate, client or agent needs the source before trusting it. There are only a few of them.
+- **Per-component / per-page Docs — off.** `ComponentContext`, the `UsageSection` bands and the usage MDX
+  pass `show={docsProvenance()}`: the same card on every component page would be noise.
+- **Override:** `setProvenance(false)` hides every card (a client deliverable that wants no plumbing
+  shown); `setProvenance(true)` shows every card, Docs included (the published demo does this). Same via
+  `globalThis.__SB_WB_PROVENANCE__` in `.storybook/preview.ts` or a toolbar global.
+- `<ReportIntro show={…} />` forces one card; on the flow wrappers `hideIntro` still **hard-suppresses**.
+- `title` renders a page heading above the card and is not provenance — it shows even when the card is off.
 
 `ExperimentBanner` is unaffected — a lifecycle-status line is real deliverable content, not demo
 orientation, so it shows as before.
 
 | Banner | Used by | One-line |
 |---|---|---|
-| `<ReportIntro>` *(off by default)* | ProjectInventory, AppFlowGraph, DesignSystemHealth, ComponentUsage, TokenMatrix, DecisionsDashboard, usage MDX | One sentence (what this page answers) + `source: file ← skill` + how it refreshes. For **derived-report** surfaces. Hidden unless `setProvenance(true)` / `show`. |
+| `<ReportIntro>` *(on for reports, off on Docs)* | ProjectInventory, AppFlowGraph, DesignSystemHealth, ComponentUsage, TokenMatrix, DecisionsDashboard, usage MDX | One sentence (what this page answers) + `source: file ← skill` + how it refreshes. For **derived-report** surfaces. `setProvenance(false)` hides it; Docs call sites pass `show={docsProvenance()}`. |
 | `<ExperimentBanner>` | ABCanvas (`experiment` prop), Explore sandboxes | Lifecycle status — "experiment from sb-explore, not shipped, decision pending" + graduation target. NOT a data-source line. |
 | `usage-index` (`UsageDisclosure` / `UsageDetail` / `resolveUsage`) | TokenMatrix, Foundations swatches (Colors · Scales · Typography) | Resolves a token/size's raw `src/...` paths → the **components & pages** that use it, each clickable to its story (via Storybook `/index.json`), capped + alphabetized. Reads `component-pages.json` `fileIndex`. Collapses inside autodocs, open on the standalone audit page. |
 

@@ -10,8 +10,8 @@
  * Collapsed by default for fast scanning: on a component's autodocs page you want the high-level glance
  * (an adaptive meta line — only the counts that are non-zero) at once, and the heavy "where it's used"
  * map (pages, parents, children, tokens — which can be long) only on demand. A compact "where it's used"
- * eyebrow + meta IS the always-visible <summary> (no redundant big <h2> — the Docs title already names
- * the component); the lanes live inside a native <details> that starts closed in autodocs and open on
+ * eyebrow + meta IS the always-visible <summary> under a plain "Where it's used" heading (the "what is
+ * this?" card, when provenance is on, sits above it); the lanes live inside a native <details> that starts closed in autodocs and open on
  * the standalone audit page (same isInAutodocs rule as UsageDisclosure).
  *
  * Page-aware: a component whose own file IS a routed page (build-component-pages emits isPage + route)
@@ -24,7 +24,7 @@
  * Storybook-only.
  */
 import { useEffect, useRef, type ReactElement } from 'react'
-import { ReportIntro } from './ReportIntro'
+import { ReportIntro, docsProvenance } from './ReportIntro'
 import { isInAutodocs, useStoryLinker } from './usage-index'
 import {
   brand, dim, ink, mono,
@@ -36,6 +36,8 @@ export interface ComponentContextProps {
   name: string
   /** story id of the Usage explorer, so "see all →" deep-links pre-focused on this component. */
   usageExplorerStoryId?: string
+  /** skip the provenance card — the caller already shows one (PageIntro on Pages docs) */
+  hideIntro?: boolean
 }
 
 // Right-edge disclosure chevron — the SAME shadcn-style chevron DesignSystemHealth uses (points down
@@ -53,16 +55,12 @@ function Chevron(): ReactElement {
 // The compact bar label: a small "where it's used" eyebrow with the adaptive meta on the same line. The
 // component name is intentionally NOT repeated — the Docs title above already names it (dropping the old
 // redundant <h2> + "COMPONENT / Name" stack). Reused by both the in-graph and not-in-graph branches.
+// The glance line under the "Where it's used" heading: counts only — the heading already names the section.
 function Eyebrow({ meta }: { meta: string }): ReactElement {
-  return (
-    <span style={{ display: 'inline-flex', alignItems: 'baseline', gap: 10, flexWrap: 'wrap', minWidth: 0 }}>
-      <span style={{ fontSize: 9.5, textTransform: 'uppercase', letterSpacing: '0.1em', color: dim, whiteSpace: 'nowrap', flexShrink: 0 }}>
-        where it’s used
-      </span>
-      <span style={{ fontSize: 12, color: ink, minWidth: 0 }}>{meta}</span>
-    </span>
-  )
+  return <span style={{ fontSize: 12, color: ink, minWidth: 0 }}>{meta}</span>
 }
+
+const HEADING_STYLE = { fontFamily: 'inherit', margin: '0 0 0.6rem', borderBottom: 'none', paddingBottom: 0 } as const
 
 // Adaptive meta: only the counts that are non-zero, so a component reads "5 call sites · 2 props · has a
 // story" and a page reads "serves /scheduler · 5 renders · has a story" — never a wall of zeros. Pages
@@ -77,7 +75,7 @@ function buildMeta(c: CompEntry, hasStory: boolean): string {
   return parts.filter(Boolean).join(' · ')
 }
 
-export function ComponentContext({ name, usageExplorerStoryId }: ComponentContextProps): ReactElement | null {
+export function ComponentContext({ name, usageExplorerStoryId, hideIntro = false }: ComponentContextProps): ReactElement | null {
   const linkFor = useStoryLinker()
   // The heavy usage map collapses by default inside autodocs (scan components fast) and opens on the
   // standalone audit page (the map is the point). Native <details> owns toggling + keyboard; we only set
@@ -94,6 +92,7 @@ export function ComponentContext({ name, usageExplorerStoryId }: ComponentContex
   if (!c) {
     return (
       <section style={{ marginTop: '2.5rem', fontFamily: mono }}>
+        <h2 style={HEADING_STYLE}>Where it’s used</h2>
         <div style={card}>
           <Eyebrow meta={linkFor(name) ? 'has a story' : 'no story yet'} />
           <p style={{ fontSize: 13, color: dim, lineHeight: 1.55, margin: '10px 0 0', maxWidth: '70ch' }}>
@@ -121,8 +120,8 @@ export function ComponentContext({ name, usageExplorerStoryId }: ComponentContex
   return (
     <section style={{ marginTop: '2.5rem', fontFamily: mono }}>
       {/* Collapsed by default: the <summary> eyebrow + adaptive meta is the high-level glance; the lanes
-          (which can be a long wall on a heavily-used component) expand only on demand. No redundant big
-          <h2> — the Docs title already names the component. Native <details> = free toggle + keyboard;
+          (which can be a long wall on a heavily-used component) expand only on demand. Order: the "what is
+          this?" card (provenance-gated), then the section heading, then the map. Native <details> = free toggle + keyboard;
           the autodocs default is set in the effect above. The default triangle marker is hidden and
           replaced by a right-edge chevron (DesignSystemHealth's pattern), rotated via CSS. */}
       <style>{`
@@ -132,6 +131,19 @@ export function ComponentContext({ name, usageExplorerStoryId }: ComponentContex
         .cc-acc[open] .cc-acc-chevron { transform: rotate(180deg); }
         @media (prefers-reduced-motion: reduce) { .cc-acc-chevron { transition: none !important; } }
       `}</style>
+      <ReportIntro
+        show={!hideIntro && docsProvenance()}
+        what={<>The real <code>{name}</code> component from this app's <code>src/</code>, rendered in isolation — the stories below are its documented states. This band shows where it's actually <strong>used</strong>: the pages it renders on, what nests it, what it renders, and the design tokens it pulls (the same graph the Usage explorer reads).</>}
+        source={{ file: 'component-pages.json', skill: 'sb-inventory' }}
+        refresh="refresh-usage.sh"
+        pipeline={[
+          { skill: 'sb-inventory', role: 'usage graph' },
+          { skill: 'sb-flows', role: 'routes → pages' },
+          { skill: 'sb-wrappers', role: 'this block' },
+        ]}
+        generatedAt={REPORT.generatedAt}
+      />
+      <h2 style={HEADING_STYLE}>Where it’s used</h2>
       <details ref={detailsRef} className="cc-acc" style={{ ...card, padding: 0 }}>
         <summary
           className="cc-acc-summary"
@@ -143,17 +155,6 @@ export function ComponentContext({ name, usageExplorerStoryId }: ComponentContex
           <Chevron />
         </summary>
         <div style={{ padding: '0 18px 16px' }}>
-          <ReportIntro
-            what={<>The real <code>{name}</code> component from this app's <code>src/</code>, rendered in isolation — the stories below are its documented states. This band shows where it's actually <strong>used</strong>: the pages it renders on, what nests it, what it renders, and the design tokens it pulls (the same graph the Usage explorer reads).</>}
-            source={{ file: 'component-pages.json', skill: 'sb-inventory' }}
-            refresh="refresh-usage.sh"
-            pipeline={[
-              { skill: 'sb-inventory', role: 'usage graph' },
-              { skill: 'sb-flows', role: 'routes → pages' },
-              { skill: 'sb-wrappers', role: 'this block' },
-            ]}
-            generatedAt={REPORT.generatedAt}
-          />
           <p style={{ fontSize: 13, opacity: 0.8, lineHeight: 1.5, maxWidth: '70ch', margin: '0 0 12px' }}>
             The Usage explorer’s map, focused on <code>{name}</code>. A solid chip with ↗ has a story; a dashed
             one is a coverage gap.

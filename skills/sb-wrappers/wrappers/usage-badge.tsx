@@ -53,7 +53,8 @@ export function usageForProps(
 
 /**
  * Style for a cell the app never ships (a declared-but-unused variant): dimmed, desaturated, and
- * non-interactive — so the grid reads "this exists but we don't use it" instead of rendering a live,
+ * non-interactive, and `inert` at the call site (out of the tab order and the a11y tree) (the badge + label already say "unused"; the faded preview
+ * is decoration) — so the grid reads "this exists but we don't use it" instead of rendering a live,
  * out-of-context button. Pair with the "×0 unused" badge.
  */
 export function unusedCellStyle(unused: boolean | undefined): CSSProperties {
@@ -77,7 +78,7 @@ export function UsageBadge({ fact }: { fact: UsageFact | null }): JSX.Element | 
   if (fact.unused) {
     return (
       <span
-        style={{ ...badgeBase, background: 'var(--color-muted, #eee)', color: 'var(--color-muted-foreground, #999)', textDecoration: 'line-through' }}
+        style={{ ...badgeBase, background: 'var(--color-muted, #eee)', color: 'color-mix(in oklab, var(--color-muted-foreground, #767676) 60%, var(--color-foreground, #111))', textDecoration: 'line-through' }}
         title={`${fact.label}: never rendered in this app`}
       >
         ×0 unused
@@ -86,7 +87,7 @@ export function UsageBadge({ fact }: { fact: UsageFact | null }): JSX.Element | 
   }
   return (
     <span
-      style={{ ...badgeBase, background: 'color-mix(in oklab, var(--color-primary, #3b82f6) 16%, transparent)', color: 'var(--color-primary, #3b82f6)' }}
+      style={{ ...badgeBase, background: 'color-mix(in oklab, var(--color-primary, #3b82f6) 16%, transparent)', color: 'color-mix(in oklab, var(--color-primary, #3b82f6) 55%, var(--color-foreground, #111))' }}
       title={`${fact.label}: ${fact.count} call site(s) in this app`}
     >
       ×{fact.count}

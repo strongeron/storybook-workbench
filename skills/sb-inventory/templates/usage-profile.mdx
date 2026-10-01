@@ -8,13 +8,13 @@
   silently padding the catalog. No human keeps it current: re-run extract-component-usage.sh and this
   page reflects the new JSON on the next Storybook build.
 
-  Note: the <ReportIntro> provenance banner below is OFF by default (demo-only) — it renders only when
-  provenance is switched on (setProvenance(true) / globalThis.__SB_WB_PROVENANCE__). The usage table
-  always shows regardless.
+  Note: this is a per-component Docs page, so the <ReportIntro> card below is off unless provenance is
+  switched on (setProvenance(true) / globalThis.__SB_WB_PROVENANCE__) — report pages show it by default,
+  Docs pages don't. The usage table always shows regardless.
 */}
 
 import { Meta } from '@storybook/addon-docs/blocks';
-import { ReportIntro } from '../../.storybook/wrappers/ReportIntro';   {/* TODO: fix relative path to .storybook/wrappers/ReportIntro */}
+import { ReportIntro, docsProvenance } from '../../.storybook/wrappers/ReportIntro';   {/* TODO: fix relative path to .storybook/wrappers/ReportIntro */}
 import usage from '../../component-usage.json';   {/* TODO: fix relative path to .storybook/component-usage.json */}
 
 <Meta title="Components/Button/Real usage" />   {/* TODO: set to "<Domain>/<Component>/Real usage" */}
@@ -24,6 +24,7 @@ export const COMPONENT = 'Button';   {/* TODO: the component name as it appears 
 export const U = (usage.components && usage.components[COMPONENT]) || null;
 
 <ReportIntro
+  show={docsProvenance()}
   what={<>How <strong>{COMPONENT}</strong> is actually used in <em>this</em> app — every prop passed, the literal values written at call sites, and the supported options the app never touches. Not a list of everything the component <em>can</em> do.</>}
   source={{ file: 'component-usage.json', skill: 'sb-inventory' }}
   refresh="extract-component-usage.sh"

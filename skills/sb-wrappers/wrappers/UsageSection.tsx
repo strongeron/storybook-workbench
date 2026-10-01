@@ -22,8 +22,10 @@
  *   // parameters.docs.page = DocsPage — order is yours; UsageSection here = top status band, last = bottom.
  */
 import { useOf } from '@storybook/addon-docs/blocks';
-import usage from '../component-usage.json';
-import { ReportIntro, provenanceEnabled } from './ReportIntro';
+// Root-relative glob (like the other wrappers): resolves from the project root wherever this file is vendored.
+const usage = Object.values((import.meta as { glob: <T = unknown>(p: string, opts?: { eager: boolean; import?: string }) => Record<string, T> })
+  .glob<Record<string, unknown>>('/.storybook/component-usage.json', { eager: true, import: 'default' }))[0] ?? {};
+import { ReportIntro, docsProvenance } from './ReportIntro';
 import { ComponentContext } from './ComponentContext';
 import { useStoryLinker } from './usage-index';
 import { REPORT, Chip, Lane, line, dim, mono, surface, stripTok, stripPage, type PageRef } from './usage-stamp';
@@ -62,6 +64,7 @@ function FoundationWhereUsed({ prefixes, label }: { prefixes: string[]; label: s
   return (
     <section style={{ marginTop: '2.5rem', fontFamily: mono }}>
       <ReportIntro
+        show={docsProvenance()}
         what={<>Where this app references the {label} tokens directly via <code>var(--…)</code> — the components and pages that pull each one (the same graph the Usage explorer reads).</>}
         source={{ file: 'component-pages.json', skill: 'sb-inventory' }}
         refresh="refresh-usage.sh"
@@ -71,7 +74,7 @@ function FoundationWhereUsed({ prefixes, label }: { prefixes: string[]; label: s
           { skill: 'sb-wrappers', role: 'this band' },
         ]}
       />
-      <h2 style={{ fontFamily: 'inherit' }}>Where it’s used</h2>
+      <h2 style={{ fontFamily: 'inherit', borderBottom: 'none', paddingBottom: 0 }}>Where it’s used</h2>
       <p style={{ fontSize: 13, opacity: 0.8, lineHeight: 1.5, maxWidth: '72ch' }}>
         The {label} tokens referenced directly via <code>var(--…)</code>. Tokens consumed through Tailwind
         utilities (e.g. <code>text-xl</code>, <code>font-display</code>) have no direct var() reference, so
@@ -98,14 +101,15 @@ function FoundationWhereUsed({ prefixes, label }: { prefixes: string[]; label: s
 
 // Pages/* get a "what is this?" provenance band: a Page story is the REAL app page rendered in isolation
 // through the provider/Inertia mocks — say so, and where it comes from, since there's no prop/usage table.
-// Provenance is OFF by default (demo-only), and this section is nothing BUT the band — so when it's off,
+// Provenance is off on Docs pages by default, and this section is nothing BUT the band — so when it's off,
 // contribute nothing rather than an empty spacer <section>. The page story still renders via autodocs.
 function PageIntro({ title }: { title: string }): JSX.Element | null {
-  if (!provenanceEnabled()) return null;
+  if (!docsProvenance()) return null;
   const name = title.split('/').pop() ?? title;
   return (
     <section style={{ marginTop: '2.5rem' }}>
       <ReportIntro
+        show
         what={<>The real <strong>{name}</strong> page from this app's <code>src/</code>, rendered in Storybook through the provider / Inertia mocks (<code>.storybook/mocks</code>) — the actual page, not a mockup. Flip the Theme / Viewport toolbars to exercise its real responsive + theming behavior.</>}
         source={{ file: 'src/**/pages (rendered via .storybook/mocks)', skill: 'sb-setup' }}
         pipeline={[
@@ -139,7 +143,7 @@ export function UsageSection(): JSX.Element | null {
   // Pages/* — the real app page in isolation. Show its "Where it's used" map (page-aware ComponentContext:
   // the route it serves, what it renders, the tokens it pulls — a page has 0 call sites by construction, so
   // the block reads "serves /route · N renders", not a misleading "0"). The PageIntro provenance band ("what
-  // is this + where it's from") sits above it but stays OFF by default. A page docs page used to show
+  // is this + where it's from") sits above it but is off on Docs pages by default. A page docs page used to show
   // NOTHING when provenance was off — the gap this closes (session drift: "I don't see Where it's used on
   // Pages"). Resolve the page's own component from meta/title (it's a key in component-pages with isPage/route).
   if (lt.startsWith('pages/')) {
@@ -147,7 +151,7 @@ export function UsageSection(): JSX.Element | null {
     return (
       <>
         <PageIntro title={title} />
-        {pageName && <ComponentContext name={pageName} usageExplorerStoryId="skill-audit--usage" />}
+        {pageName && <ComponentContext name={pageName} usageExplorerStoryId="skill-audit--usage" hideIntro />}
       </>
     );
   }

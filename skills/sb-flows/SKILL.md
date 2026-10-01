@@ -6,7 +6,7 @@ allowed-tools: Bash Read Glob Grep Write
 license: MIT
 metadata:
   author: strongeron
-  version: '2.3.0'
+  version: '2.4.0'
   bundle: storybook-workbench
   vendor:
     scripts: [extract-flows.sh, scaffold-wrapper.sh]
@@ -62,9 +62,9 @@ the source. See `references/flow-capture.md` → **"Validate the graph."**
   coverage colouring, click-to-story. Feed an `AppGraph` derived from `flows.json`.
 - **`<JourneyGraph journey={...}>`** — one flow's journey map (the `Flows/*` Docs index); each step
   links to its per-state story by `storyId`. Ships a collapsed "how to add a flow" authoring hint by
-  default (suppress with `hideAuthoringHint`); the "what is this?" provenance banner is **off by
-  default** — reachable on demand via `setProvenance()` / `__SB_WB_PROVENANCE__`, and `hideIntro`
-  hard-suppresses it. The
+  default (suppress with `hideAuthoringHint`); the "what is this?" provenance banner is **on by
+  default** (a flow map is a report) — `setProvenance(false)` / `__SB_WB_PROVENANCE__ = false` hides it
+  everywhere, and `hideIntro` hard-suppresses it on one map. The
   `journey` is a CURATED narrative — one persona's path across the captured graph — not a field in
   `flows.json` (which holds the route nodes + edges `AppFlowGraph` draws).
 - Both take an injectable `icons` prop (pass lucide/project icons) — **no emoji** (CONTEXT.md

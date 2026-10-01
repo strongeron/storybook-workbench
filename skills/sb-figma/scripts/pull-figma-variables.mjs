@@ -1,11 +1,16 @@
 #!/usr/bin/env node
 /**
- * pull-figma-variables.mjs — normalize Figma published variables into a stable DTCG-ish cache.
+ * pull-figma-variables.mjs — normalize Figma variables into a stable DTCG-ish cache.
  *
- * Scripts can't call the Figma MCP directly, so the flow is: the AGENT runs the MCP tool
- * `get_variable_defs` (file id + variables node id), then pipes that JSON to this script on stdin:
+ * Scripts can't call the Figma MCP directly, so the AGENT reads the variables and pipes the JSON in:
+ *   • preferred — `use_figma` with references/read-figma-variables.js: every collection, EVERY mode
+ *     (light, dark, …), aliases resolved. Needs write access to the file (the script only reads).
+ *   • fallback — `get_variable_defs` on a node: only the variables that node uses, in one mode.
  *
- *   <mcp get_variable_defs output> | node pull-figma-variables.mjs --from-mcp - --out .storybook/figma-variables.json
+ *   <MCP output> | node pull-figma-variables.mjs --from-mcp - --out .storybook/figma-variables.json
+ *
+ * The use_figma shape adds `modes: { <modeName>: {color, spacing, type, effect} }` for every non-default
+ * mode; the top-level families always hold the default mode, so older consumers keep working.
  *
  * Headless / no MCP: omit --from-mcp and the script just validates+reprints the existing --out cache so the
  * rest of the pipeline (build-token-parity) still runs against the last good pull. This is the degrade path.
@@ -13,7 +18,8 @@
  * Output shape (families kept separate so spacing/type aren't forced through colour resolution):
  *   { "$generatedFrom": {file,node}, "color": {<var>:{$value,$type,ref?}}, "spacing": {...}, "type": {...} }
  */
-import { readFileSync, writeFileSync } from 'node:fs'
+import { readFileSync, writeFileSync, mkdirSync } from 'node:fs'
+import { dirname } from 'node:path'
 
 function arg(name, fallback = null) {
   const i = process.argv.indexOf(name)
@@ -78,6 +84,31 @@ function parseFont(v) {
   return Object.keys(out).length ? out : null
 }
 
+// use_figma read-figma-variables.js shape: [{ collection, modes:[…], variables:[{ name, type, values:{mode:v} }] }].
+const isCollections = (raw) => Array.isArray(raw) && raw.length > 0 && raw.every((c) => c && Array.isArray(c.variables) && Array.isArray(c.modes))
+
+// Default mode = a mode named light/default/value, else the collection's first. Every other mode name
+// (Dark, …) becomes its own family set; a collection without that mode contributes its default value.
+function normalizeCollections(cols) {
+  const isDefault = (m) => /^(light|default|value|mode 1)$/i.test(m)
+  const defaultOf = (c) => c.modes.find(isDefault) ?? c.modes[0]
+  const otherModes = [...new Set(cols.flatMap((c) => c.modes.filter((m) => m !== defaultOf(c))))]
+  const pick = (mode) => {
+    const flat = {}
+    for (const c of cols) for (const v of c.variables) {
+      const val = c.modes.includes(mode) ? v.values[mode] : v.values[defaultOf(c)]
+      if (val != null) flat[v.name] = typeof val === 'number' ? String(val) : val
+    }
+    return normalize(flat)
+  }
+  const flatDefault = {}
+  for (const c of cols) for (const v of c.variables) {
+    const val = v.values[defaultOf(c)]
+    if (val != null) flatDefault[v.name] = typeof val === 'number' ? String(val) : val
+  }
+  return { ...normalize(flatDefault), modes: Object.fromEntries(otherModes.map((m) => [m, pick(m)])) }
+}
+
 function normalize(raw) {
   const families = { color: {}, spacing: {}, type: {}, effect: {} }
   const visit = (name, value, type) => {
@@ -115,10 +146,13 @@ if (fromMcp) {
   if (!text.trim()) { console.error('pull-figma-variables: no MCP input on stdin/file'); process.exit(2) }
   let raw
   try { raw = JSON.parse(text) } catch (e) { console.error('pull-figma-variables: MCP input is not JSON —', e.message); process.exit(2) }
-  payload = { $generatedFrom: { file, node }, ...normalize(raw) }
+  const source = isCollections(raw) ? 'use_figma' : 'get_variable_defs'
+  payload = { $generatedFrom: { file, node, source }, ...(source === 'use_figma' ? normalizeCollections(raw) : normalize(raw)) }
+  mkdirSync(dirname(out), { recursive: true })
   writeFileSync(out, JSON.stringify(payload, null, 2) + '\n')
   const n = ['color', 'spacing', 'type'].reduce((s, f) => s + Object.keys(payload[f]).length, 0)
-  console.log(`pull-figma-variables: wrote ${n} variables → ${out} (color ${Object.keys(payload.color).length} · spacing ${Object.keys(payload.spacing).length} · type ${Object.keys(payload.type).length})`)
+  const modes = Object.keys(payload.modes || {})
+  console.log(`pull-figma-variables: wrote ${n} variables → ${out} (color ${Object.keys(payload.color).length} · spacing ${Object.keys(payload.spacing).length} · type ${Object.keys(payload.type).length}) · from ${source}${modes.length ? ` · extra modes: ${modes.join(', ')}` : ' · one mode only'}`)
 } else {
   // Degrade: validate + reprint the existing cache so the pipeline keeps working without MCP.
   try {

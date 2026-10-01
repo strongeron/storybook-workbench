@@ -125,7 +125,7 @@ The core flow, in run order. Each writes to `.storybook/` and is invoked on its 
 |-------|---------------------------|
 | **sb-explore** | prototype a new/redesigned component in a sandbox **outside** `src/` (app code never depends on it). |
 | **sb-ship** | graduate an Explore experiment to a production component (preserves history — `cp`, never `git mv`). |
-| **sb-figma** | bridge Figma↔Storybook both ways via the native Figma MCP — map foundation tokens and deliver approved components (design→code), and build Code Connect mappings so Figma Dev Mode shows the real code (code→design). |
+| **sb-figma** | bridge Figma↔Storybook both ways via the native Figma MCP — token parity in every Figma mode (Light vs `:root`, Dark vs `.dark`) and delivery of approved components (design→code); Code Connect mappings and CSS tokens → Figma variables (code→design). Logs what it can't map in `.storybook/figma/gaps.json`; your fixes go in `.storybook/workbench.json`. |
 
 > Plus **sb-cross-agent-run** — a `bundle_only` orchestration skill that drives the whole pipeline cross-agent (Codex/Cursor build, Claude validates, one phase per turn). It ships with the bundle but isn't installed à la carte, so it's not in the 11 count above.
 

@@ -11,7 +11,7 @@
  */
 import { useMemo, type CSSProperties, type ReactNode } from 'react';
 import { Icon } from './icons';
-import { ReportIntro } from './ReportIntro';
+import { ReportIntro, ReportTitle } from './ReportIntro';
 
 export interface ProjectInventoryReport {
   generatedAt?: string;
@@ -37,7 +37,7 @@ export interface ProjectInventoryReport {
 }
 
 const inventoryFiles = (import.meta as { glob: <T = unknown>(p: string, opts?: { eager: boolean }) => Record<string, T> })
-  .glob<ProjectInventoryReport>('../../.storybook/project-inventory.json', { eager: true });
+  .glob<ProjectInventoryReport>('/.storybook/project-inventory.json', { eager: true });
 
 // component-usage.json carries the real UI-component call-site usage (only things that render
 // as JSX appear here — types/utils never do, so it's the clean UI list). The importer-ranked
@@ -47,7 +47,7 @@ interface ComponentUsageReport {
   components?: Record<string, { callSites?: number; files?: string[]; props?: Record<string, unknown> }>;
 }
 const usageFiles = (import.meta as { glob: <T = unknown>(p: string, opts?: { eager: boolean }) => Record<string, T> })
-  .glob<ComponentUsageReport>('../../.storybook/component-usage.json', { eager: true });
+  .glob<ComponentUsageReport>('/.storybook/component-usage.json', { eager: true });
 
 const SANS = 'var(--font-family-sans, ui-sans-serif, system-ui, sans-serif)';
 const DISPLAY = 'var(--font-family-display, ' + SANS + ')';
@@ -113,9 +113,9 @@ function Eyebrow() {
 function Panel({ title, icon, children }: { title: string; icon: ReactNode; children: ReactNode }) {
   return (
     <section style={{ border: '1px solid var(--color-border-subtle)', borderRadius: 'var(--radius-lg)', padding: '1.1rem 1.2rem' }}>
-      <h3 style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', margin: '0 0 0.8rem', fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--color-muted-foreground)' }}>
+      <h2 style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', margin: '0 0 0.8rem', fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--color-muted-foreground)' }}>
         {icon} {title}
-      </h3>
+      </h2>
       {children}
     </section>
   );
@@ -221,7 +221,7 @@ function EmptyState(): JSX.Element {
   return (
     <Shell>
       <Eyebrow />
-      <h1 style={{ fontFamily: DISPLAY, fontSize: '1.7rem', margin: '0.8rem 0 0.4rem', letterSpacing: '-0.01em' }}>Project inventory</h1>
+      <ReportTitle>Project inventory</ReportTitle>
       <p style={{ color: 'var(--color-muted-foreground)', maxWidth: '64ch', lineHeight: 1.55, margin: 0 }}>
         No inventory yet. Run the discovery script to capture the project's ground truth (replaces trusting CLAUDE.md / AGENTS.md):
       </p>
@@ -258,6 +258,14 @@ export function ProjectInventory({ fillViewport = true }: { fillViewport?: boole
 
   return (
     <Shell fillViewport={fillViewport}>
+      <header style={{ marginBottom: '1.6rem' }}>
+        <Eyebrow />
+        <ReportTitle>Project inventory</ReportTitle>
+        <p style={{ color: 'var(--color-muted-foreground)', fontSize: '0.95rem', margin: 0 }}>
+          <strong style={{ color: LEGEND.good.text }}>{c.realCount}</strong> real · <strong style={{ color: LEGEND.bad.text }}>{c.deadCount}</strong> dead ({slopRate}% slop) · <strong style={{ color: 'var(--color-foreground)' }}>{report.tokens.usedCount}/{report.tokens.totalDeclared}</strong> tokens used
+          {report.generatedAt && <span style={{ color: 'var(--color-muted-foreground)' }}> · {report.generatedAt.slice(0, 10)}</span>}
+        </p>
+      </header>
       <ReportIntro
         what="A live inventory of what's actually in this project — which components really render, which are dead weight, and how many design tokens are used versus declared. It replaces trusting AGENTS.md / CLAUDE.md with what the code actually does."
         source={{ file: 'project-inventory.json', skill: 'sb-inventory' }}
@@ -265,14 +273,6 @@ export function ProjectInventory({ fillViewport = true }: { fillViewport?: boole
         refresh="inventory-project.sh"
         generatedAt={report.generatedAt}
       />
-      <header style={{ marginBottom: '1.6rem' }}>
-        <Eyebrow />
-        <h1 style={{ fontFamily: DISPLAY, fontSize: '1.7rem', margin: '0.8rem 0 0.35rem', letterSpacing: '-0.01em' }}>Project inventory</h1>
-        <p style={{ color: 'var(--color-muted-foreground)', fontSize: '0.95rem', margin: 0 }}>
-          <strong style={{ color: LEGEND.good.text }}>{c.realCount}</strong> real · <strong style={{ color: LEGEND.bad.text }}>{c.deadCount}</strong> dead ({slopRate}% slop) · <strong style={{ color: 'var(--color-foreground)' }}>{report.tokens.usedCount}/{report.tokens.totalDeclared}</strong> tokens used
-          {report.generatedAt && <span style={{ color: 'var(--color-muted-foreground)' }}> · {report.generatedAt.slice(0, 10)}</span>}
-        </p>
-      </header>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '1rem', marginBottom: '2rem' }}>
         <Panel title="Stack" icon={<Icon.box size={13} />}>

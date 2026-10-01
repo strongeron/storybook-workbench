@@ -8,7 +8,7 @@ Detect what the Storybook shared preview must SUPPLY to render a page, as precom
   - portals    : createPortal targets (DOM ids the preview must create) + index.html non-root ids
   - network    : data-fetch libraries/hooks present → whether MSW is needed
 
-Writes .storybook/runtime.json. Reports reality, invents nothing. The native >=12-read Glob/Grep
+Prints the JSON; pass --out .storybook/runtime.json to write the file the skills read. Reports reality, invents nothing. The native >=12-read Glob/Grep
 agent pass is reserved only for judgment a static scan can't make.
 
 Usage:

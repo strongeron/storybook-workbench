@@ -15,7 +15,8 @@ import { resolvePaint } from "./resolve-paint"
 // light AND dark) — no green brand tint on content. Fallbacks keep these usable if the
 // helper is ever rendered without the app tokens loaded.
 const ink = "var(--color-foreground, oklch(0.30 0.01 155))"
-const dim = "var(--color-muted-foreground, oklch(0.48 0.015 155))"
+// small labels need 4.5:1 — lean the muted token 20% toward the foreground (same rule as usage-stamp)
+const dim = "color-mix(in oklab, var(--color-muted-foreground, oklch(0.48 0.015 155)) 80%, var(--color-foreground, oklch(0.30 0.03 155)))"
 const line = "var(--color-border-subtle, oklch(0.905 0.008 155))"
 const panel = "var(--color-surface, oklch(0.975 0.006 155))"
 const mono =

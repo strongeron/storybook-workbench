@@ -11,152 +11,108 @@
  * supported — the FOX2-10 dialect); spacing/type compare raw values. App-only code tokens (no Figma var)
  * and Figma-only variables (no code token) are listed as *expected*, not failures.
  *
+ * Modes: the CSS is read per theme — `:root`/base rules are the default theme; `.dark`, `[data-theme=dark]`,
+ * `[data-mode=dark]` and `@media (prefers-color-scheme: dark)` blocks are the dark theme (default values
+ * underneath). Figma's default mode is compared with the default theme; a Figma mode named like "Dark" with
+ * the dark theme. Other Figma modes (e.g. "Mobile") are listed in `unmatchedModes`, not compared.
+ *
  * Output: { "$meta": {...}, "color": { "--primary": {figmaVar,figmaHex,codeHex,mapsTo,drift} }, "spacing": {...}, "type": {...},
- *           "appOnly": ["--ring", ...], "figmaOnly": ["semantic/x", ...] }
+ *           "appOnly": ["--ring", ...], "figmaOnly": ["semantic/x", ...],
+ *           "modes": { "Dark": { "color": {...}, "spacing": {...}, "type": {...} } }, "unmatchedModes": [...] }
  */
-import { readFileSync, writeFileSync, readdirSync, statSync } from 'node:fs'
-import { join } from 'node:path'
+import { readFileSync, writeFileSync, mkdirSync } from 'node:fs'
+import { dirname } from 'node:path'
+import { hexDrifts, literalToHex, collectCss, resolveLiteral } from './css-tokens.mjs'
+import { loadSettings, globMatcher, syncGaps, GAPS_PATH } from './workbench-settings.mjs'
 
 function arg(name, fallback = null) {
   const i = process.argv.indexOf(name)
   return i >= 0 && i + 1 < process.argv.length ? process.argv[i + 1] : fallback
 }
 
-// ── OKLCH → sRGB hex ─────────────────────────────────────────────────────────
-// oklch(L C H) with L in [0,1] (or %), C ≥ 0, H in degrees. Standard OKLab matrices; gamut-clamp to sRGB.
-function oklchToHex(L, C, H) {
-  const hr = (H * Math.PI) / 180
-  const a = C * Math.cos(hr)
-  const b = C * Math.sin(hr)
-  const l_ = L + 0.3963377774 * a + 0.2158037573 * b
-  const m_ = L - 0.1055613458 * a - 0.0638541728 * b
-  const s_ = L - 0.0894841775 * a - 1.2914855480 * b
-  const l = l_ ** 3, m = m_ ** 3, s = s_ ** 3
-  let r = +4.0767416621 * l - 3.3077115913 * m + 0.2309699292 * s
-  let g = -1.2684380046 * l + 2.6097574011 * m - 0.3413193965 * s
-  let bl = -0.0041960863 * l - 0.7034186147 * m + 1.7076147010 * s
-  const enc = (x) => {
-    x = Math.max(0, Math.min(1, x)) // gamut clamp
-    const v = x <= 0.0031308 ? 12.92 * x : 1.055 * x ** (1 / 2.4) - 0.055
-    return Math.round(Math.max(0, Math.min(1, v)) * 255)
-  }
-  const h2 = (n) => n.toString(16).padStart(2, '0')
-  return `#${h2(enc(r))}${h2(enc(g))}${h2(enc(bl))}`
-}
-
-const numPct = (s) => (s.endsWith('%') ? parseFloat(s) / 100 : parseFloat(s))
-
-// Two hexes are "the same colour" if every channel is within `tol` (default 2/255). OKLCH→hex goes
-// through gamut clamp + 8-bit rounding, so a published Figma hex and a code-resolved hex routinely differ
-// by ±1 with no real drift — only a larger gap is meaningful. Returns true when they DIVERGE beyond tol.
-function hexDrifts(a, b, tol = 2) {
-  if (!a || !b || !/^#[0-9a-f]{6}$/i.test(a) || !/^#[0-9a-f]{6}$/i.test(b)) return false
-  for (let i = 1; i < 7; i += 2) {
-    if (Math.abs(parseInt(a.slice(i, i + 2), 16) - parseInt(b.slice(i, i + 2), 16)) > tol) return true
-  }
-  return false
-}
-
-// Parse a colour literal (NOT a var()) into hex, or null if not a colour.
-function literalToHex(value) {
-  const v = value.trim()
-  if (/^#[0-9a-f]{6}$/i.test(v)) return v.toLowerCase()
-  // 8-digit (#rrggbbaa, e.g. Figma "#e4e5e580") → drop alpha for an RGB compare.
-  if (/^#[0-9a-f]{8}$/i.test(v)) return v.slice(0, 7).toLowerCase()
-  if (/^#[0-9a-f]{3}$/i.test(v)) return ('#' + v.slice(1).split('').map((c) => c + c).join('')).toLowerCase()
-  if (/^#[0-9a-f]{4}$/i.test(v)) return ('#' + v.slice(1, 4).split('').map((c) => c + c).join('')).toLowerCase()
-  const ok = v.match(/^oklch\(\s*([^)]+)\)$/i)
-  const triplet = ok ? ok[1] : v
-  // bare or wrapped "L C H" (slash-alpha tolerated): 0.56 0.072 234  |  66% 0.21 29
-  const m = triplet.replace(/\/.*$/, '').trim().match(/^([\d.]+%?)\s+([\d.]+%?)\s+([\d.]+%?)$/)
-  if (m && (ok || /^[\d.]/.test(v))) {
-    // Heuristic for the FOX2-10 dialect: a bare triplet whose 2nd value is small (<1) is OKLCH chroma.
-    const L = numPct(m[1]); const C = parseFloat(m[2]); const H = parseFloat(m[3])
-    if (!Number.isNaN(L) && !Number.isNaN(C) && !Number.isNaN(H)) return oklchToHex(L, C, H)
-  }
-  return null
-}
-
-// ── collect CSS custom properties (last declaration wins, like the cascade at :root) ──
-function collectCss(globArg) {
-  const roots = []
-  const base = globArg.replace(/\/\*\*.*$/, '').replace(/\/[^/]*\*.*$/, '') || '.'
-  const walk = (dir) => {
-    let entries = []
-    try { entries = readdirSync(dir) } catch { return }
-    for (const e of entries) {
-      const p = join(dir, e)
-      let st; try { st = statSync(p) } catch { continue }
-      if (st.isDirectory()) { if (e !== 'node_modules' && !e.startsWith('.')) walk(p) }
-      else if (/\.(css|scss)$/.test(e)) roots.push(p)
-    }
-  }
-  walk(base)
-  const decls = {}
-  const re = /(--[a-z0-9-]+)\s*:\s*([^;]+);/gi
-  for (const f of roots) {
-    let css = ''
-    try { css = readFileSync(f, 'utf8') } catch { continue }
-    for (const m of css.matchAll(re)) decls[m[1].trim()] = m[2].trim()
-  }
-  return decls
-}
-
-// follow var() chains to a literal
-function resolveLiteral(name, decls, seen = new Set()) {
-  if (seen.has(name)) return null
-  seen.add(name)
-  const v = decls[name]
-  if (v == null) return null
-  const m = v.match(/^var\(\s*(--[a-z0-9-]+)\s*(?:,[^)]*)?\)$/i)
-  if (m) return resolveLiteral(m[1], decls, seen)
-  return v
-}
-
 // ── map a Figma variable name → a code custom-property name ──
 // semantic/primary → --primary ; Spacing.spacing-2 → --spacing-2 ; wght/medium → --font-weight-medium (best effort)
+// Name parts split on `/` and on a `.` that isn't a decimal point (spacing/1.5 keeps "1.5").
+const SEP = /\/|(?<!\d)\.|\.(?!\d)/
 function codeNameFor(figmaVar, decls) {
-  const leaf = figmaVar.split(/[/.]/).pop()
+  const parts = figmaVar.split(SEP)
+  const leaf = parts.at(-1)
+  const last2 = parts.slice(-2).join('-')
+  // strength 2 = matched on two name parts (red/600 → --color-red-600), 1 = leaf only (a guess).
   const candidates = [
-    `--${leaf}`,
-    `--${figmaVar.split(/[/.]/).slice(-2).join('-')}`,
-    `--font-weight-${leaf}`,
-    `--text-${leaf}`,
-    `--leading-${leaf}`,
-    `--spacing-${leaf}`,
+    [`--${last2}`, 2], [`--color-${last2}`, 2], // Tailwind v4 namespaces
+    [`--${leaf}`, 1], [`--color-${leaf}`, 1], [`--font-weight-${leaf}`, 1], [`--text-${leaf}`, 1],
+    [`--leading-${leaf}`, 1], [`--spacing-${leaf}`, 1],
   ]
-  return candidates.find((c) => c in decls) || null
+  const hit = candidates.find(([c]) => c in decls)
+  return hit ? { code: hit[0], strength: hit[1] } : null
 }
 
+// Sizes compare in px (Figma floats are px; 1rem = 16px); anything else compares as normalised text.
+const toPx = (v) => { const m = String(v).trim().match(/^(-?[\d.]+)(px|rem)?$/i); return m ? parseFloat(m[1]) * (m[2]?.toLowerCase() === 'rem' ? 16 : 1) : null }
+function sizeDrifts(a, b) {
+  const pa = toPx(a), pb = toPx(b)
+  if (pa != null && pb != null) return Math.abs(pa - pb) > 0.01
+  const n = (x) => String(x).replace(/["'\s]/g, '').toLowerCase()
+  return n(a) !== n(b)
+}
+
+const settings = loadSettings()
 const variablesPath = arg('--variables', '.storybook/figma-variables.json')
-const cssGlob = arg('--css', 'src/**/*.css')
+const cssGlob = arg('--css', settings.css)
+const ignored = globMatcher(settings.ignore)
 const out = arg('--out', '.storybook/figma-token-parity.json')
 
 let vars
 try { vars = JSON.parse(readFileSync(variablesPath, 'utf8')) }
 catch { console.error(`build-token-parity: cannot read ${variablesPath} — run pull-figma-variables.mjs first`); process.exit(2) }
 
-const decls = collectCss(cssGlob)
-const result = { $meta: { variables: variablesPath, css: cssGlob, from: vars.$generatedFrom || null }, color: {}, spacing: {}, type: {}, appOnly: [], figmaOnly: [] }
+const themes = collectCss(cssGlob, settings.darkSelectors)
+const decls = themes.default
+const result = { $meta: { variables: variablesPath, css: cssGlob, from: vars.$generatedFrom || null }, color: {}, spacing: {}, type: {}, appOnly: [], figmaOnly: [], ambiguous: {}, modes: {}, unmatchedModes: [] }
 const matchedCode = new Set()
+const badMaps = [] // nameMap entries pointing at a token the CSS doesn't declare
 
-for (const family of ['color', 'spacing', 'type']) {
-  for (const [figmaVar, def] of Object.entries(vars[family] || {})) {
-    const code = codeNameFor(figmaVar, decls)
-    if (!code) { result.figmaOnly.push(figmaVar); continue }
-    matchedCode.add(code)
-    if (family === 'color') {
-      const figmaHex = typeof def.$value === 'string' ? literalToHex(def.$value) : null
-      const codeLiteral = resolveLiteral(code, decls)
-      const codeHex = codeLiteral ? literalToHex(codeLiteral) : null
-      const drift = hexDrifts(figmaHex, codeHex)
-      result.color[code] = { figmaVar, figmaHex: figmaHex || String(def.$value), codeHex, mapsTo: codeLiteral, drift }
-    } else {
-      const figmaVal = String(def.$value)
-      const codeVal = resolveLiteral(code, decls)
-      result[family][code] = { figmaVar, figmaHex: figmaVal, codeHex: codeVal, drift: codeVal != null && codeVal.replace(/px|rem|\s/g, '') !== figmaVal.replace(/px|rem|\s/g, '') }
+// Compare one Figma mode's families with one CSS theme. `track` collects figmaOnly/matched for the default.
+function parity(families, themeDecls, track) {
+  const res = { color: {}, spacing: {}, type: {} }
+  const strengthOf = {}
+  for (const family of ['color', 'spacing', 'type']) {
+    for (const [figmaVar, def] of Object.entries(families[family] || {})) {
+      if (ignored(figmaVar)) continue
+      // the project's own mapping (workbench.json figma.nameMap) beats every guess
+      const mapped = settings.nameMap[figmaVar]
+      const hit = mapped ? (mapped in themeDecls ? { code: mapped, strength: 3 } : null) : codeNameFor(figmaVar, themeDecls)
+      if (mapped && !hit && track) badMaps.push({ map: `${figmaVar} → ${mapped}`, darkOnly: mapped in themes.dark })
+      if (!hit) { if (track) result.figmaOnly.push(figmaVar); continue }
+      const code = hit.code
+      // Several Figma variables can land on one code token (bg/muted, fg/muted → --color-muted). Keep the
+      // stronger match (first wins on a tie) and report the rest instead of silently overwriting.
+      if (code in strengthOf) {
+        if (track) (result.ambiguous[code] ??= [res[family][code]?.figmaVar].filter(Boolean)).push(figmaVar)
+        if (hit.strength <= strengthOf[code]) continue
+      }
+      strengthOf[code] = hit.strength
+      if (track) matchedCode.add(code)
+      if (family === 'color') {
+        const figmaHex = typeof def.$value === 'string' ? literalToHex(def.$value) : null
+        const codeLiteral = resolveLiteral(code, themeDecls)
+        const codeHex = codeLiteral ? literalToHex(codeLiteral) : null
+        res.color[code] = { figmaVar, figmaHex: figmaHex || String(def.$value), codeHex, mapsTo: codeLiteral, drift: hexDrifts(figmaHex, codeHex), ...(hit.strength < 2 ? { guess: true } : {}) }
+      } else {
+        const figmaVal = String(def.$value)
+        const codeVal = resolveLiteral(code, themeDecls)
+        res[family][code] = { figmaVar, figmaHex: figmaVal, codeHex: codeVal, drift: codeVal != null && sizeDrifts(figmaVal, codeVal), ...(hit.strength < 2 ? { guess: true } : {}) }
+      }
     }
   }
+  return res
+}
+
+Object.assign(result, parity(vars, decls, true))
+for (const [mode, families] of Object.entries(vars.modes || {})) {
+  if (/dark/i.test(mode)) result.modes[mode] = parity(families, themes.dark, false)
+  else result.unmatchedModes.push(mode)
 }
 
 // app-only = colour/space/type code tokens with no matching Figma var (expected: --ring, --popover, …)
@@ -167,7 +123,33 @@ for (const name of Object.keys(decls)) {
 }
 result.appOnly.sort(); result.figmaOnly.sort()
 
+mkdirSync(dirname(out), { recursive: true })
 writeFileSync(out, JSON.stringify(result, null, 2) + '\n')
-const drifted = ['color', 'spacing', 'type'].flatMap((f) => Object.values(result[f])).filter((r) => r.drift).length
-console.log(`build-token-parity: ${out} — color ${Object.keys(result.color).length} · spacing ${Object.keys(result.spacing).length} · type ${Object.keys(result.type).length} · drift ${drifted} · appOnly ${result.appOnly.length} · figmaOnly ${result.figmaOnly.length}`)
+const driftIn = (r) => ['color', 'spacing', 'type'].flatMap((f) => Object.values(r[f])).filter((x) => x.drift).length
+const modeNote = Object.entries(result.modes).map(([m, r]) => ` · ${m} drift ${driftIn(r)}`).join('')
+console.log(`build-token-parity: ${out} — color ${Object.keys(result.color).length} · spacing ${Object.keys(result.spacing).length} · type ${Object.keys(result.type).length} · drift ${driftIn(result)}${modeNote} · appOnly ${result.appOnly.length} · figmaOnly ${result.figmaOnly.length}`)
+if (!Object.keys(vars.modes || {}).length) console.log('  one Figma mode only — dark mode not compared (read the variables with use_figma + read-figma-variables.js to include every mode)')
+// ── gaps this run found (owned kinds; ones not found again are marked resolved) ──
+const found = []
+for (const [code, figmaVars] of Object.entries(result.ambiguous))
+  found.push({ kind: 'collision', key: code, detail: `${code} ← ${figmaVars.join(', ')}`,
+    suggestion: `map each one in workbench.json figma.nameMap, or add the ones that don't belong to figma.ignore` })
+for (const fam of ['color', 'spacing', 'type']) for (const [code, e] of Object.entries(result[fam])) {
+  if (e.guess) found.push({ kind: 'weak-match', key: e.figmaVar, detail: `${e.figmaVar} → ${code} (matched on the last word only)`,
+    suggestion: `confirm it: "${e.figmaVar}": "${code}" in figma.nameMap (or map it to the right token)` })
+  if (fam === 'color' && (!e.codeHex || !/^#/.test(e.figmaHex))) found.push({ kind: 'unsupported-value', key: code,
+    detail: `${code}: can't compare ${e.codeHex ? '' : `code value "${e.mapsTo}"`}${!e.codeHex && !/^#/.test(e.figmaHex) ? ' and ' : ''}${/^#/.test(e.figmaHex) ? '' : `Figma value "${e.figmaHex}"`}`,
+    suggestion: 'unsupported colour syntax — report it (report-issue.sh --gaps) or ignore the token' })
+}
+if (result.figmaOnly.length) found.push({ kind: 'unmapped-name', key: 'figma-only', detail: `${result.figmaOnly.length} Figma variable(s) have no code token: ${result.figmaOnly.slice(0, 12).join(', ')}${result.figmaOnly.length > 12 ? ' …' : ''}`,
+  suggestion: 'add figma.nameMap entries for the ones that should match; figma.ignore the rest' })
+for (const m of badMaps) found.push({ kind: 'unmapped-name', key: `nameMap:${m.map}`,
+  detail: m.darkOnly ? `figma.nameMap ${m.map}: declared only in the dark theme — no light value` : `figma.nameMap ${m.map}: the CSS has no such token`,
+  suggestion: m.darkOnly ? 'give the token a light value in :root (or map the default mode elsewhere)' : 'fix the token name in workbench.json' })
+const gapsPath = arg('--gaps', GAPS_PATH)
+const open = syncGaps('build-token-parity', ['collision', 'weak-match', 'unsupported-value', 'unmapped-name'], found, gapsPath)
+const amb = Object.entries(result.ambiguous)
+if (amb.length) console.log(`  ${amb.length} code token(s) matched by several Figma variables (kept the closest name, rest listed in ambiguous): ${amb.slice(0, 5).map(([c, v]) => `${c} ← ${v.join(' | ')}`).join('; ')}${amb.length > 5 ? ' …' : ''}`)
+if (open.length) console.log(`  ${open.length} open gap(s) in ${gapsPath} — list them: node scripts/workbench-settings.mjs gaps`)
+if (result.unmatchedModes.length) console.log(`  Figma modes with no CSS theme to compare against: ${result.unmatchedModes.join(', ')}`)
 if (result.figmaOnly.length) console.log(`  figma-only (no code token — add or ignore): ${result.figmaOnly.join(', ')}`)

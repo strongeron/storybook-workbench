@@ -4,7 +4,7 @@ Universal anti-patterns to refuse when writing or reviewing stories. Most are we
 
 ## Legend
 
-- 🛡️ **MCP catches** — if `@storybook/addon-mcp` is wired, the injected instructions or `run-story-tests` will surface this automatically
+- 🛡️ **MCP catches** — if `@storybook/addon-mcp` is wired, the injected instructions or `test-run` will surface this automatically
 - 📕 **Skill catches** — you must enforce this; MCP won't help
 
 Out of 28 items below, **MCP automatically catches 5** (~18%); the rest are judgment, project-level decisions, or designer/prototype concerns — that's the value-add of this skill regardless of MCP.
@@ -15,7 +15,7 @@ Out of 28 items below, **MCP automatically catches 5** (~18%); the rest are judg
 2. 📕 **Imports from `@storybook/addon-essentials` / `@storybook/blocks`** — both empty in SB10. Use `@storybook/addon-docs/blocks`, `storybook/test`, `@storybook/react-vite`.
 3. 🛡️📕 **Inline mock data inside `render`** instead of `args` — breaks Controls panel.
 4. 📕 **All-props-as-args dumps** — only meaningful visual props in `args`; refs and internal callbacks clutter Controls.
-5. 🛡️ **Hallucinated props** — always read the component's TypeScript interface (or call `get-documentation`) before writing args.
+5. 🛡️ **Hallucinated props** — always read the component's TypeScript interface (or call `docs-show`) before writing args.
 6. 🛡️📕 **Arbitrary Tailwind/inline-style values in component source** — clean up the component (replace `bg-[#3b82f6]` with `bg-primary`); the story is a symptom.
 7. 📕 **Repeating the same `parameters.msw.handlers` per story** — lift shared handlers to `preview.tsx`; only override per-story for story-specific responses.
 8. 📕 **Mocking at the wrong level** — auth/session/theme/locale → `preview.tsx`; API responses for *this* story's data → `parameters.msw.handlers`; component-internal `useState` defaults → story `args`.

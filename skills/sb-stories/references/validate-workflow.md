@@ -160,7 +160,7 @@ The agent reads the sub-agent report, fixes anything actionable, and re-runs the
 ## What this reference deliberately does not cover
 
 - **Visual regression** — that's `ds-test-setup` skill territory (Chromatic / Lost Pixel / Playwright snapshots). The validator's job is conformance, not pixel diffing.
-- **Axe rule policies** — `addon-a11y` is configured at install; project-specific axe rule customization is out of scope for this validator. The validator can call `run-story-tests` with `a11y: true` if MCP is wired.
+- **Axe rule policies** — `addon-a11y` is configured at install; project-specific axe rule customization is out of scope for this validator. The validator can call `test-run` with `a11y: true` if MCP is wired.
 - **TypeScript type narrowing inside `play`** — `tsc --noEmit` (strict mode) catches this in `--strict` runs. The validator doesn't try to encode SB-specific type rules.
 - **Performance** — story file size, decorator depth, bundle impact. Out of scope here.
 

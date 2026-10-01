@@ -29,7 +29,7 @@ interface FeatureEntry {
 interface Inventory { generatedAt?: string; features?: Record<string, FeatureEntry> }
 
 const invGlob = (import.meta as { glob: <T>(p: string, o?: { eager: boolean }) => Record<string, T> })
-  .glob<Inventory>('../../.storybook/figma-inventory.json', { eager: true })
+  .glob<Inventory>('/.storybook/figma-inventory.json', { eager: true })
 const INVENTORY: Inventory = Object.values(invGlob)[0] ?? {}
 
 const slug = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')

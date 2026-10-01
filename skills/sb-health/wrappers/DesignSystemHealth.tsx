@@ -13,7 +13,7 @@
  */
 import { useMemo, useState, type CSSProperties, type ReactNode } from 'react';
 import { Icon, type WrapperIcon } from './icons';
-import { ReportIntro } from './ReportIntro';
+import { ReportIntro, ReportTitle } from './ReportIntro';
 
 export type FindingSeverity = 'error' | 'warning' | 'info';
 export type FindingKind =
@@ -37,7 +37,7 @@ export interface HealthReport {
 }
 
 const healthFiles = (import.meta as { glob: <T = unknown>(p: string, opts?: { eager: boolean }) => Record<string, T> })
-  .glob<HealthReport>('../../.storybook/design-system-health.json', { eager: true });
+  .glob<HealthReport>('/.storybook/design-system-health.json', { eager: true });
 
 const SEV: Record<FindingSeverity, { label: string; text: string; dot: string; icon: WrapperIcon }> = {
   error:   { label: 'Error',   text: 'var(--color-error-text)',       dot: 'var(--color-error)',   icon: Icon.x },
@@ -168,7 +168,7 @@ function EmptyState(): JSX.Element {
   return (
     <Shell>
       <Eyebrow />
-      <h1 style={{ fontFamily: DISPLAY, fontSize: '1.7rem', margin: '0.8rem 0 0.4rem', letterSpacing: '-0.01em' }}>Design system health</h1>
+      <ReportTitle>Design system health</ReportTitle>
       <p style={{ color: 'var(--color-muted-foreground)', maxWidth: '64ch', lineHeight: 1.55, margin: 0 }}>
         No report yet. Run the validator to generate <code style={{ fontFamily: MONO, fontSize: '0.85em' }}>.storybook/design-system-health.json</code>:
       </p>
@@ -221,6 +221,14 @@ export function DesignSystemHealth({ fillViewport = true }: { fillViewport?: boo
           .dsh-acc-chevron { transition: none !important; }
         }
       `}</style>
+      <header style={{ marginBottom: '1.6rem' }}>
+        <Eyebrow />
+        <ReportTitle>Design system health</ReportTitle>
+        <p style={{ color: 'var(--color-muted-foreground)', fontSize: '0.95rem', margin: 0 }}>
+          {total} {total === 1 ? 'finding' : 'findings'} · {status}
+          {report.generatedAt && <span style={{ color: 'var(--color-muted-foreground)' }}> · {report.generatedAt.slice(0, 10)}</span>}
+        </p>
+      </header>
       <ReportIntro
         what="A health check of the design system: raw color literals, undefined or unused tokens, contrast failures, scale gaps, and naming drift — each finding pointing at the exact file and line, so you fix the source, not a doc."
         source={{ file: 'design-system-health.json', skill: 'sb-health' }}
@@ -228,14 +236,6 @@ export function DesignSystemHealth({ fillViewport = true }: { fillViewport?: boo
         refresh="validate-design-system.sh src"
         generatedAt={report.generatedAt}
       />
-      <header style={{ marginBottom: '1.6rem' }}>
-        <Eyebrow />
-        <h1 style={{ fontFamily: DISPLAY, fontSize: '1.7rem', margin: '0.8rem 0 0.35rem', letterSpacing: '-0.01em' }}>Design system health</h1>
-        <p style={{ color: 'var(--color-muted-foreground)', fontSize: '0.95rem', margin: 0 }}>
-          {total} {total === 1 ? 'finding' : 'findings'} · {status}
-          {report.generatedAt && <span style={{ color: 'var(--color-muted-foreground)' }}> · {report.generatedAt.slice(0, 10)}</span>}
-        </p>
-      </header>
 
       {total > 0 && (
         <div style={{ marginBottom: '2rem' }}>

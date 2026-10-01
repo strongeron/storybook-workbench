@@ -6,7 +6,7 @@ allowed-tools: Bash Read Glob Grep Write
 license: MIT
 metadata:
   author: strongeron
-  version: '2.3.0'
+  version: '2.4.0'
   bundle: storybook-workbench
   vendor:
     scripts: [scaffold-wrapper.sh]

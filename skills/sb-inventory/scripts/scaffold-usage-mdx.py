@@ -73,7 +73,8 @@ if per_component:
         # generated file imports it correctly (no human "fix the relative path" TODO left behind).
         ri_target = os.path.join(os.path.dirname(usage_path) or ".", "wrappers", "ReportIntro")
         ri_rel = os.path.relpath(ri_target, os.path.dirname(out_file)).replace(os.sep, "/")
-        body = re.sub(r"import \{ ReportIntro \} from '[^']*';\s*\{/\*[^*]*\*/\}", f"import {{ ReportIntro }} from '{ri_rel}';", body)
+        body = re.sub(r"import \{ (ReportIntro(?:, docsProvenance)?) \} from '[^']*';\s*\{/\*[^*]*\*/\}",
+                      lambda m: f"import {{ {m.group(1)} }} from '{ri_rel}';", body)
         body = re.sub(r"<Meta title=\"[^\"]*\" />\s*\{/\*[^*]*\*/\}", f'<Meta title="{title_prefix}/{name}/Real usage" />', body)
         body = re.sub(r"export const COMPONENT = '[^']*';\s*\{/\*[^*]*\*/\}", f"export const COMPONENT = '{name}';", body)
         tmp = out_file + ".tmp"

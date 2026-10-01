@@ -38,6 +38,9 @@
 import { createElement, type ComponentType } from 'react';
 import { usageForProps, UsageBadge, unusedCellStyle, type ComponentUsage } from './usage-badge';
 
+// `inert` through the DOM property: React 18 drops the boolean attribute, React 19 renders it — this works on both.
+const setInert = (on: boolean | undefined) => (el: HTMLElement | null) => { if (el) el.inert = !!on }
+
 export interface MatrixAxis<P> {
   label: string;
   /** Props this axis contributes to each cell (e.g. { variant: 'primary' } or { disabled: true }). */
@@ -100,7 +103,7 @@ export function StateMatrix<P>({
     >
       <thead>
         <tr>
-          <th style={{ ...headCell, textAlign: 'left' }} />
+          <td />
           {states.map((s) => (
             <th key={s.label} style={headCell}>{s.label}</th>
           ))}
@@ -136,7 +139,7 @@ export function StateMatrix<P>({
                     verticalAlign: 'middle',
                   }}
                 >
-                  <span style={dim}>{pseudoCls ? <span className={pseudoCls}>{rendered}</span> : rendered}</span>
+                  <span style={dim} ref={setInert(rowFact?.unused)}>{pseudoCls ? <span className={pseudoCls}>{rendered}</span> : rendered}</span>
                 </td>
               );
             })}

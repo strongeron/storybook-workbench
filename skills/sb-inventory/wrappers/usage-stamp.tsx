@@ -33,7 +33,9 @@ function Swatch({ value, size = 9, radius = 2 }: { value: string; size?: number;
 }
 
 export const ink = 'var(--color-foreground, oklch(0.30 0.03 155))'
-export const dim = 'var(--color-muted-foreground, oklch(0.48 0.022 155))'
+// the chrome's small uppercase labels need 4.5:1; an app's muted token often lands just under it,
+// so dim leans 20% toward the foreground (same rule as ReportIntro's MUTED)
+export const dim = 'color-mix(in oklab, var(--color-muted-foreground, oklch(0.48 0.022 155)) 80%, var(--color-foreground, oklch(0.30 0.03 155)))'
 export const line = 'var(--color-border-subtle, oklch(0.905 0.008 155))'
 export const surface = 'var(--color-surface, oklch(0.99 0.003 155))'
 export const brand = 'var(--color-brand-500, var(--color-primary, oklch(0.55 0.16 250)))'
@@ -46,12 +48,12 @@ export interface TokenEntry { category?: string | null; count: number; component
 export interface Report { generatedAt?: string; components?: Record<string, CompEntry>; tokens?: Record<string, TokenEntry> }
 
 const cpGlob = (import.meta as { glob: <T>(p: string, o?: { eager: boolean }) => Record<string, T> })
-  .glob<Report>('../../.storybook/component-pages.json', { eager: true })
+  .glob<Report>('/.storybook/component-pages.json', { eager: true })
 export const REPORT: Report = Object.values(cpGlob)[0] ?? {}
 
 interface InvDoc { tokens?: { map?: { token: string; value?: string; category?: string; status?: string; mapsTo?: string; count?: number; source?: string }[] } }
 const invGlob = (import.meta as { glob: <T>(p: string, o?: { eager: boolean }) => Record<string, T> })
-  .glob<InvDoc>('../../.storybook/project-inventory.json', { eager: true })
+  .glob<InvDoc>('/.storybook/project-inventory.json', { eager: true })
 export const TOKEN_META: Record<string, { value?: string; category?: string; status?: string; mapsTo?: string; source?: string }> = {}
 for (const r of Object.values(invGlob)[0]?.tokens?.map ?? []) TOKEN_META[r.token] = r
 

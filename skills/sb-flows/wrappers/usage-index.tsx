@@ -17,7 +17,9 @@
 import { useEffect, useRef, useState, type CSSProperties, type ReactElement } from 'react'
 
 const ink = 'var(--color-foreground, oklch(0.30 0.03 155))'
-const dim = 'var(--color-muted-foreground, oklch(0.48 0.022 155))'
+// the chrome's small uppercase labels need 4.5:1; an app's muted token often lands just under it,
+// so dim leans 20% toward the foreground (same rule as ReportIntro's MUTED)
+const dim = 'color-mix(in oklab, var(--color-muted-foreground, oklch(0.48 0.022 155)) 80%, var(--color-foreground, oklch(0.30 0.03 155)))'
 const line = 'var(--color-border-subtle, oklch(0.905 0.008 155))'
 const brand = 'var(--color-brand-500, var(--color-primary, oklch(0.55 0.16 250)))'
 const mono = 'ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace'
@@ -27,7 +29,7 @@ interface FileEntry { component: string | null; kind: string; pages: PageRef[] }
 interface ComponentPagesReport { fileIndex?: Record<string, FileEntry> }
 
 const reportFiles = (import.meta as { glob: <T>(p: string, o?: { eager: boolean }) => Record<string, T> })
-  .glob<ComponentPagesReport>('../../.storybook/component-pages.json', { eager: true })
+  .glob<ComponentPagesReport>('/.storybook/component-pages.json', { eager: true })
 const FILE_INDEX: Record<string, FileEntry> = Object.values(reportFiles)[0]?.fileIndex ?? {}
 // Secondary index by basename, so a path that differs only by prefix (a scanner that drops `src/`) still
 // resolves. Exact path wins; basename is the fallback.

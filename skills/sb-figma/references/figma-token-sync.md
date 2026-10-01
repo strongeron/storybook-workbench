@@ -1,4 +1,4 @@
-# Figma → Storybook delivery — the runbook
+# Figma ↔ Storybook — the runbook
 
 Load this when delivering an **approved** Figma design. For *iterating an undecided* design, stop — that's
 `sb-explore` (Lab). The lifecycle: `sb-explore` (explore) → `sb-ship` (graduate Lab) ‖ `sb-figma` (deliver
@@ -10,28 +10,31 @@ Scripts can't call MCP and an MCP result is ephemeral (gone next session, absent
 through the universal store so downstream steps + future iterations read disk, never re-hit MCP:
 
 ```bash
-<tool output JSON> | node scripts/capture-figma.mjs --tool <get_variable_defs|get_design_context|get_metadata|get_code_connect_map> --file <FILE> --node <NODE> --from-mcp -
+<tool output> | node scripts/capture-figma.mjs --tool <use_figma|get_variable_defs|get_design_context|get_metadata|get_code_connect_suggestions|get_context_for_code_connect> --file <FILE> --node <NODE> --from-mcp -
 node scripts/capture-figma.mjs --tool get_screenshot --file <FILE> --node <NODE> --image /tmp/frame.png   # images
 node scripts/capture-figma.mjs --list                                                                     # inventory
 ```
 Store: `.storybook/figma/manifest.json` + `.storybook/figma/<tool>/<node>.json`. Re-capture overwrites → `git diff` shows what moved in Figma.
 
-## Job 1 — foundation tokens (reads the captured variables)
+## Job 1 — foundation tokens (every mode)
 
-1. **Resolve inputs** — Figma **file id**, the **variables node id** (the variables/styles spec frame), and the
-   project's **token CSS path(s)**. Ask if not provided.
-2. **Capture + normalize:** capture `get_variable_defs` (Job 0), then normalize the stored file:
+1. **Resolve inputs** — the Figma file URL (→ `fileKey`) and the project's **token CSS path(s)**. Ask if not
+   provided.
+2. **Read + capture** — preferred: load `figma-use`, then `use_figma` with `references/read-figma-variables.js`
+   as `code` (`skillNames: "figma-use"`): every collection, every mode, aliases resolved. Fallback without edit
+   access: `get_variable_defs` on a node that uses the tokens (that node's variables, one mode).
+3. **Normalize** (either shape):
    ```bash
    node scripts/pull-figma-variables.mjs \
-       --from-mcp .storybook/figma/get_variable_defs/<NODE>.json --out .storybook/figma-variables.json
+       --from-mcp .storybook/figma/<use_figma|get_variable_defs>/<NODE>.json --out .storybook/figma-variables.json
    ```
    Headless / no capture yet: run with no `--from-mcp` and it reuses the last `--out` cache (degrade path).
-3. **Build parity:**
+4. **Build parity** (default mode ↔ `:root`, Dark ↔ `.dark` / `[data-theme=dark]` / dark `@media`):
    ```bash
    node scripts/build-token-parity.mjs --variables .storybook/figma-variables.json \
        --css "src/styles/**/*.css" --out .storybook/figma-token-parity.json
    ```
-4. **Wire the foundation stories** — `Colors.stories.tsx` (and the `Tokens`/`Type` groups) import the parity
+5. **Wire the foundation stories** — `Colors.stories.tsx` (and the `Tokens`/`Type` groups) import the parity
    JSON and spread `figmaVar`/`figmaHex` onto the matching `TokenMatrix`/`TokensCanvas` rows. Pattern:
    ```ts
    import parity from '../../.storybook/figma-token-parity.json'
@@ -39,8 +42,8 @@ Store: `.storybook/figma/manifest.json` + `.storybook/figma/<tool>/<node>.json`.
    // row: { token: 'primary', role: 'Primary', ...fig('primary') }  // → figmaVar + figmaHex appear
    ```
    Keep the fields optional — a project with no `figma-token-parity.json` renders exactly as today.
-5. **Report drift** — surface `build-token-parity`'s `drift` rows and `figmaOnly` list. `appOnly` tokens
-   (`--ring`, `--popover`, …) are **expected**, not failures — say so.
+6. **Report drift** per mode — `drift` rows, `modes.Dark` drift, `figmaOnly`, `unmatchedModes`. `appOnly`
+   tokens (`--ring`, `--popover`, …) are **expected**, not failures — say so.
 
 ### OKLCH → hex notes (why the resolver exists)
 
@@ -54,15 +57,22 @@ all handled; HSL channel triplets are out of v1 scope (flag if encountered).
 
 Mirrors the test project's `design-system-guardrails.md` §8, but **delegates authoring to `sb-stories`**:
 
-1. `get_design_context` for the node (truncated → `get_metadata`, then fetch the sub-node) + `get_screenshot`.
-2. **Audit before adding** — grep existing components for the same concept; extend rather than duplicate.
-3. **Build** with approved tokens/primitives only — tokens, not magic numbers. A Figma value with **no token**
-   → stop and ask (route to Job 1 or the user); never smuggle a raw value in.
-4. **Author the story following `sb-stories`** — materially-different states only, factory if 3+ share a shape.
-   Do not reinvent CSF3 rules; load `sb-stories`.
-5. **Stamp + embed** — node-id top-of-file comment; `parameters.design = { type:'figma', url:'…?node-id=…' }`
-   (`@storybook/addon-designs`) + a docs-description link.
-6. **Validate** — light / dark / mobile, screenshot-vs-implementation parity.
+1. **Chunk** a big board by artboard/section; deliver and record one part at a time.
+2. **Load `figma-design-to-code`**, then `get_design_context` for the node (`skillNames`, `clientFrameworks`):
+   code + asset URLs + screenshot in one call. Metadata-only response → fetch the child nodes it lists.
+3. **Reuse** — Code Connect-mapped components come back as the real import; otherwise grep for the same
+   concept and extend it (`search_design_system` for library components).
+4. **Assets** — `download_assets` into the project; no placeholders, no temporary Figma URLs in code.
+5. **Build** with approved tokens/primitives only — a Figma value with **no token** → stop and ask.
+6. **Author the story following `sb-stories`**, stamp the node-id + `parameters.design`, validate
+   light / dark / mobile against the captured screenshot, then record it in the Figma Inventory.
+
+## Job 3 — Code Connect (code → design)
+
+`whoami` (Organization/Enterprise plan) → `get_code_connect_suggestions` (`excludeMappingPrompt: true`) →
+`get_context_for_code_connect` per component → `comps.json` → `build-code-connect.mjs --file <FILE_KEY>` →
+show the user `send` → `send_code_connect_mappings`. Prop-level snippets: Code Connect 2.x template files
+(`Component.figma.ts`) or a `template` in the mapping; `context[].propMappings` is the input.
 
 ## Guardrails
 

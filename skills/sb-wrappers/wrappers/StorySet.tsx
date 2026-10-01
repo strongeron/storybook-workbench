@@ -64,9 +64,12 @@ interface StoryModule {
 
 const modules = {
   ...(import.meta as { glob: (path: string, opts?: { eager: boolean }) => Record<string, StoryModule> })
-    .glob('../../src/**/*.stories.tsx', { eager: true }),
+    .glob('/src/**/*.stories.tsx', { eager: true }),
   ...(import.meta as { glob: (path: string, opts?: { eager: boolean }) => Record<string, StoryModule> })
-    .glob('../../stories/**/*.stories.tsx', { eager: true }),
+    .glob('/stories/**/*.stories.tsx', { eager: true }),
+  // sb-setup's default isolated storiesLocation
+  ...(import.meta as { glob: (path: string, opts?: { eager: boolean }) => Record<string, StoryModule> })
+    .glob('/.storybook/stories/**/*.stories.tsx', { eager: true }),
 };
 
 function toStoryId(title: string, exportName: string): string {

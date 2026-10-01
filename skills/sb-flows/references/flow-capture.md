@@ -263,7 +263,7 @@ So the journey map and the sidebar are 1:1, and tests never break on renames:
 - **Export name** stays **semantic** — `Interactive`, `Step3`, `Confirm`. The number lives *only*
   in the display name, never in the export.
 - **Always link/test by `storyId`** — the id is derived from the title + export, not the display
-  name. Numbered display names are cosmetic and never break `run-story-tests` or `<StorySet ids>`.
+  name. Numbered display names are cosmetic and never break `test-run` or `<StorySet ids>`.
 
 ```tsx
 export const Confirm: Story = {            // semantic export → stable storyId
@@ -305,8 +305,9 @@ Another field miss: documenting a flow's states as cramped blocks *inside the Do
 ## Bridge to Storybook's own docs
 
 Flow/journey conventions and the change-aware sidebar evolve upstream. Where this reference touches
-a native capability, prefer the live doc over baked-in claims (MCP `get-documentation`, or WebFetch):
+a native capability, prefer the live doc over baked-in claims (MCP `docs-show`, or WebFetch):
 
 - Git **New/Modified/related** sidebar filters (SB 10.4 "change review") — use them to see *what
-  changed* instead of inventing a `changed` tag. → `storybook.js.org/docs`
+  changed* instead of inventing a `changed` tag. Agents get the same list from MCP `stories-changed`
+  (10.6+), and can publish it as a review page with `review-create`. → `storybook.js.org/docs`
 - Sharing/publishing a flow walkthrough for stakeholder review → `storybook.js.org/docs/sharing/publish-storybook`

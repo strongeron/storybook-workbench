@@ -1,7 +1,7 @@
 ---
 name: sb-setup
-description: "Set up Storybook on a React+Vite app that has none — defer to `npx storybook ai setup`, then align viteFinal/providers/MCP and ask where stories live. Use for 'set up Storybook', 'install Storybook', or NO_STORYBOOK."
-compatibility: "Requires Node.js and npx (defers to `npx storybook ai setup`); bash and python3 for the align + runtime-discovery scripts."
+description: "Set up Storybook on a React+Vite app that has none — defer to Storybook's own agent setup (`npm create storybook@latest`, `storybook skills setup`), then align viteFinal/providers/MCP and ask where stories live. Use for 'set up Storybook', 'install Storybook', or NO_STORYBOOK."
+compatibility: "Requires Node.js and npx (defers to Storybook's own setup: `npm create storybook@latest`, `npx storybook skills setup`); bash and python3 for the align + runtime-discovery scripts."
 allowed-tools: Bash Read Glob Grep Write Edit
 license: MIT
 metadata:
@@ -11,7 +11,7 @@ metadata:
   vendor:
     scripts: [discover-runtime.py]
     wrappers: false
-    references: [install-wizard.md, native-ai-setup-prompt.md]
+    references: [install-wizard.md, native-ai-setup-prompt.md, storybook-surface.md]
 ---
 
 # sb-setup — native-first install
@@ -25,13 +25,17 @@ test -d .storybook && grep -q '"storybook"' package.json 2>/dev/null && echo PRE
 # NO_STORYBOOK → defer to Storybook's OWN official onboarding. `storybook` is the official npm
 # package (@storybook/cli) — not a URL, not bundled or controlled by this skill; the USER runs it.
 # This skill ships ZERO runtime dependencies and makes no network calls of its own. See SECURITY.md.
-npx storybook ai setup        # Storybook 10.4 agentic onboarding (the official `storybook` package)
+npm create storybook@latest   # installs, then prints follow-up steps for the agent (the official package)
+npx storybook skills setup    # 10.6+: the setup prompt to execute (10.4–10.5: `npx storybook ai setup`)
 ```
+
+Command names move between Storybook minors — `references/storybook-surface.md` holds the current
+ones and the pre-10.6 equivalents.
 
 ## Know what the native flow already does
 
 Before layering anything on top, read `references/native-ai-setup-prompt.md` — the
-**captured `storybook ai setup` prompt** (default `optimized-tests` variant), with its 8 rules of
+**captured native setup prompt** (`storybook skills setup` since 10.6, `storybook ai setup` before) (default `optimized-tests` variant), with its 8 rules of
 engagement, 8-step plan (discover → shared preview → portals → MSW → write ≤10 colocated stories +
 one `CssCheck` → `play` discipline → batch-verify → cleanup), 5 done-when criteria, and verbatim
 code examples. Our job is to NOT redo any of that — only add the under-documented align bits below.
@@ -39,10 +43,10 @@ code examples. Our job is to NOT redo any of that — only add the under-documen
 ## Then align + verify (the under-documented bits)
 
 Load `references/install-wizard.md` for the full align layer (load it **only when you're actually
-aligning a fresh `storybook ai setup`** — **Do NOT load it** to answer a one-off "is my Storybook
+aligning a fresh native setup** — **Do NOT load it** to answer a one-off "is my Storybook
 configured right?" question; the checklist below is enough for that):
 
-- **runtime discovery FIRST** — `${CLAUDE_PLUGIN_ROOT:-${CLAUDE_PLUGIN_ROOT}}/scripts/discover-runtime.py` →
+- **runtime discovery FIRST** — `${CLAUDE_PLUGIN_ROOT:-${CLAUDE_PLUGIN_ROOT}}/scripts/discover-runtime.py . --out .storybook/runtime.json` →
   `.storybook/runtime.json`: the native Step-1 facts as ground truth (provider tree + `from`, root-CSS
   mechanism (JS import vs `index.html` `<link>`), portal target ids, network/MSW surface). The three
   bullets below come **from** it — verify against it, don't re-derive by reading the entry by hand.
@@ -115,7 +119,8 @@ tool exists — never silently pick:
 **`.storybook/stories/` is the default**: if the user doesn't pick, or it's clearly a client/messy
 repo, choose it — **never co-locate silently** (that's the scatter we're avoiding). Then **configure
 `main.ts` `stories` to match** (`.storybook/stories/` → add `'./stories/**/*.stories.@(tsx|ts)'`
-relative to `.storybook/`; a custom path → add its glob; keep the `@/` alias so stories import cleanly),
+relative to `.storybook/`; a custom path → add its glob; keep the `@/` alias so stories import cleanly;
+note that the dev server does not live-reload story files added under `.storybook/` — restart after),
 and **record the choice** in `.storybook/audit/status.md` as `storiesLocation: isolated|colocated|PATH`.
 `sb-stories` and `sb-hub` read that and never re-ask.
 

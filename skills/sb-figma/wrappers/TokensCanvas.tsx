@@ -30,16 +30,16 @@ type DtcgTokenFile = Record<string, unknown>;
 // Use Vite glob imports to read every CSS + tokens.json file in the repo at build time.
 // These are evaluated when Storybook builds; the wrapper itself stays pure-runtime.
 const cssRawFiles = (import.meta as { glob: <T = unknown>(p: string, opts?: { eager: boolean; query?: string; import?: string }) => Record<string, T> })
-  .glob<RawCss>('../../**/*.css', { eager: true, query: '?raw', import: 'default' });
+  .glob<RawCss>('/**/*.css', { eager: true, query: '?raw', import: 'default' });
 
 const dtcgFiles = (import.meta as { glob: <T = unknown>(p: string, opts?: { eager: boolean }) => Record<string, T> })
-  .glob<DtcgTokenFile>('../../**/tokens.json', { eager: true });
+  .glob<DtcgTokenFile>('/**/tokens.json', { eager: true });
 
 const dtcgFiles2 = (import.meta as { glob: <T = unknown>(p: string, opts?: { eager: boolean }) => Record<string, T> })
-  .glob<DtcgTokenFile>('../../**/*.tokens.json', { eager: true });
+  .glob<DtcgTokenFile>('/**/*.tokens.json', { eager: true });
 
 const componentsJsonFiles = (import.meta as { glob: <T = unknown>(p: string, opts?: { eager: boolean }) => Record<string, T> })
-  .glob<Record<string, unknown>>('../../components.json', { eager: true });
+  .glob<Record<string, unknown>>('/components.json', { eager: true });
 
 // ────────────────────────────────────────────────────────────────────────────────
 // Token parsing

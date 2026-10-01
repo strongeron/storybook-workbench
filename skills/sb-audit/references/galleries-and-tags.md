@@ -382,4 +382,4 @@ This reference captures:
 - The agent-callable workflow framing (added per user direction 2026-05-27)
 - Concrete proof-by-data using a production app's 191 stories survey
 
-Storybook does not ship this natively. Closest patterns (`@storybook/blocks` Canvas, autodocs aggregation, MCP `preview-stories`) all aggregate per-component or return URLs — none of them project a tag-filtered set into a single canvas.
+Storybook does not ship a tag-driven gallery. Closest patterns (`@storybook/blocks` Canvas, autodocs aggregation, MCP `stories-preview`) aggregate per-component or return URLs. Since 10.6 the experimental review page (`review-create`, `features.experimentalReview`) renders an agent-curated set of stories in groups with a rationale each — use it for a one-off "show me what this change touches" review. It is a single, replaceable page built from story IDs the agent picks; a StorySet gallery is a permanent story driven by tags, so it keeps working as stories are added.

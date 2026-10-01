@@ -25,6 +25,9 @@
 import { createElement, type ComponentType } from 'react';
 import { usageForProps, UsageBadge, unusedCellStyle, type ComponentUsage } from './usage-badge';
 
+// `inert` through the DOM property: React 18 drops the boolean attribute, React 19 renders it — this works on both.
+const setInert = (on: boolean | undefined) => (el: HTMLElement | null) => { if (el) el.inert = !!on }
+
 export interface StateEntry<P> {
   label: string;
   props: P;
@@ -58,7 +61,7 @@ export function StateGrid<P>({ component: Component, states, cols, rows, interac
       <table style={{ borderCollapse: 'separate', borderSpacing: '0.75rem', width: '100%' }}>
         <thead>
           <tr>
-            <th style={{ textAlign: 'left', fontSize: '0.7rem', color: 'var(--color-muted-foreground, #666)' }} />
+            <td />
             {matrixCols.map((col) => (
               <th key={col.label} style={{ textAlign: 'center', fontSize: '0.7rem', color: 'var(--color-muted-foreground, #666)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
                 {col.label}
@@ -84,7 +87,7 @@ export function StateGrid<P>({ component: Component, states, cols, rows, interac
                 const rendered = createElement(ComponentForCreate, props as Record<string, unknown>);
                 return (
                   <td key={col.label} style={{ padding: '0.5rem', textAlign: 'center' }}>
-                    <span style={dim}>{pseudoCls ? <span className={pseudoCls}>{rendered}</span> : rendered}</span>
+                    <span style={dim} ref={setInert(rowFact?.unused)}>{pseudoCls ? <span className={pseudoCls}>{rendered}</span> : rendered}</span>
                   </td>
                 );
               })}
@@ -150,7 +153,7 @@ export function StateGrid<P>({ component: Component, states, cols, rows, interac
               {label}
               {usage && <UsageBadge fact={fact} />}
             </div>
-            <span style={unusedCellStyle(fact?.unused)}>{rendered}</span>
+            <span style={unusedCellStyle(fact?.unused)} ref={setInert(fact?.unused)}>{rendered}</span>
           </div>
         );
       })}

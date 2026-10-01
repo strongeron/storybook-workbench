@@ -11,6 +11,8 @@ your source, token values, or component names). From your project root:
 # or just describe it — sb-hub Mode 3 ("report a bug") runs this for you
 ```
 
+Add `--gaps` to include sb-figma's open gaps (`.storybook/figma/gaps.json`) as counts per kind.
+
 It writes a local body file and prints a `gh issue create …` command + a blank-issue URL. It makes **no
 network call** — you review and submit. Set `SB_ISSUE_REPO=owner/name` to target a different repo.
 

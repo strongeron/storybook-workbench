@@ -21,7 +21,7 @@ interface CompEntry { callSites: number; props: number; declaredButUnused?: numb
 interface ComponentPagesReport { generatedAt?: string; appMapStoryId?: string; components: Record<string, CompEntry> }
 
 const reportFiles = (import.meta as { glob: <T = unknown>(p: string, opts?: { eager: boolean }) => Record<string, T> })
-  .glob<ComponentPagesReport>('../../.storybook/component-pages.json', { eager: true });
+  .glob<ComponentPagesReport>('/.storybook/component-pages.json', { eager: true });
 
 const SANS = 'var(--font-family-sans, ui-sans-serif, system-ui, sans-serif)';
 const DISPLAY = 'var(--font-family-display, ' + SANS + ')';

@@ -20,7 +20,7 @@
  */
 import type { CSSProperties, ReactElement } from 'react'
 import { Fragment, useEffect, useRef, useState } from 'react'
-import { ReportIntro } from './ReportIntro'
+import { ReportIntro, ReportTitle } from './ReportIntro'
 import { resolvePaint } from './resolve-paint'
 import { UsageDetail, resolveUsage, usageSummary } from './usage-index'
 
@@ -73,7 +73,7 @@ interface HealthReport {
   generatedAt?: string
 }
 const healthGlob = (import.meta as { glob: <T>(p: string, o?: { eager: boolean }) => Record<string, T> })
-  .glob<HealthReport>('../../.storybook/design-system-health.json', { eager: true })
+  .glob<HealthReport>('/.storybook/design-system-health.json', { eager: true })
 const HEALTH: HealthReport | null = Object.values(healthGlob)[0] ?? null
 
 // Attribute findings to a token by the `--token` names in their message — generic,
@@ -94,7 +94,7 @@ if (HEALTH) {
 interface ParityEntry { figmaVar?: string; figmaHex?: string; codeHex?: string; mapsTo?: string; drift?: boolean }
 interface ParityReport { color?: Record<string, ParityEntry>; spacing?: Record<string, ParityEntry>; type?: Record<string, ParityEntry>; appOnly?: string[]; figmaOnly?: string[] }
 const parityGlob = (import.meta as { glob: <T>(p: string, o?: { eager: boolean }) => Record<string, T> })
-  .glob<ParityReport>('../../.storybook/figma-token-parity.json', { eager: true })
+  .glob<ParityReport>('/.storybook/figma-token-parity.json', { eager: true })
 const PARITY: ParityReport | null = Object.values(parityGlob)[0] ?? null
 const PARITY_BY_TOKEN: Record<string, ParityEntry> = {}
 if (PARITY) for (const section of [PARITY.color, PARITY.spacing, PARITY.type]) {
@@ -432,6 +432,12 @@ export function TokenMatrix({ groups, eyebrow, title, generatedAt, hideIntro, us
 
   return (
     <div ref={root}>
+      {(eyebrow != null || title != null) && (
+        <div style={{ marginBottom: 22 }}>
+          {eyebrow && <div style={{ ...head, fontSize: 10.5, letterSpacing: '0.12em' }}>{eyebrow}</div>}
+          {title && <ReportTitle>{title}</ReportTitle>}
+        </div>
+      )}
       {!hideIntro && (
         <ReportIntro
           what={health
@@ -454,13 +460,6 @@ export function TokenMatrix({ groups, eyebrow, title, generatedAt, hideIntro, us
           {allTokens.map((t) => <div key={`sd-${t}`} data-sem-dark data-token={t} style={{ background: `var(--${t})` }} />)}
         </div>
       </div>
-
-      {(eyebrow != null || title != null) && (
-        <header style={{ marginBottom: 22 }}>
-          {eyebrow && <div style={{ ...head, fontSize: 10.5, letterSpacing: '0.12em' }}>{eyebrow}</div>}
-          {title && <h1 style={{ fontFamily: mono, fontSize: 22, fontWeight: 700, letterSpacing: '-0.01em', color: ink, margin: '4px 0 0' }}>{title}</h1>}
-        </header>
-      )}
 
       <div style={{ margin: '0 0 18px', padding: '10px 14px', border: `1px solid ${line}`, borderRadius: 10, background: 'var(--color-surface, oklch(0.975 0.006 155))', fontFamily: mono, fontSize: 11.5 }}>
         {!health ? (

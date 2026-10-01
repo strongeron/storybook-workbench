@@ -1,0 +1,38 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Storybook Workbench project settings",
+  "description": "The project's own rules for the Workbench skills. Owned by the project, never overwritten by a skill update. Command-line flags win over these.",
+  "type": "object",
+  "properties": {
+    "$schema": { "type": "string" },
+    "figma": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "css": { "type": "string", "description": "Glob of the CSS files that declare the tokens, e.g. src/**/*.css" },
+        "darkSelectors": {
+          "type": "array", "items": { "type": "string" },
+          "description": "Text that marks a dark-theme block when it appears in its selector or @media prelude, e.g. .dark, [data-theme=dark], prefers-color-scheme: dark"
+        },
+        "nameMap": {
+          "type": "object", "additionalProperties": { "type": "string", "pattern": "^--" },
+          "description": "Figma variable name → CSS custom property, e.g. \"fg/error\": \"--color-error-text\". Beats the name guessing and settles collisions."
+        },
+        "ignore": {
+          "type": "array", "items": { "type": "string" },
+          "description": "Figma variable names to leave out of parity; * matches anything, e.g. Size/*"
+        },
+        "variantValues": {
+          "type": "object",
+          "additionalProperties": { "type": "string" },
+          "description": "Figma variant value → code prop value for Code Connect, e.g. \"status - success\": \"success\""
+        },
+        "codeConnectLabel": {
+          "type": "string",
+          "enum": ["React", "Web Components", "Vue", "Svelte", "Storybook", "Javascript", "Swift", "Swift UIKit", "Objective-C UIKit", "SwiftUI", "Compose", "Java", "Kotlin", "Android XML Layout", "Flutter", "Markdown"],
+          "description": "Default label for Code Connect mappings"
+        }
+      }
+    }
+  }
+}

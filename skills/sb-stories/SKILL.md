@@ -6,7 +6,7 @@ allowed-tools: Bash Read Glob Grep Write Edit
 license: MIT
 metadata:
   author: strongeron
-  version: '2.3.0'
+  version: '2.4.0'
   bundle: storybook-workbench
   vendor:
     # Skill-local files live in this skill's scripts/ + references/; shared ones (e.g. discover-runtime.py,
@@ -14,7 +14,7 @@ metadata:
     # and are copied into dist/ by build.sh on export.
     scripts: [validate-stories.sh, check-story-ready.sh, scaffold-factory.sh, extract-states.sh, extract-prop-shapes.sh, page-patterns.py, scaffold-page-story.py, discover-runtime.py]
     wrappers: false
-    references: [with-mcp.md, without-mcp.md, anti-patterns.md, validate-workflow.md, factory-patterns.md, extraction-workflow.md, test-wiring.md, directory-structure.md, composition-patterns.md]
+    references: [with-mcp.md, without-mcp.md, storybook-surface.md, anti-patterns.md, validate-workflow.md, factory-patterns.md, extraction-workflow.md, test-wiring.md, directory-structure.md, composition-patterns.md]
     templates: [controlled-component-story.tsx]
 ---
 
@@ -81,6 +81,7 @@ grep -q '@storybook/addon-mcp' package.json && test -f .mcp.json && echo WITH_MC
 ```
 
 - `WITH_MCP` → `references/with-mcp.md` (MCP injects CSF3 conventions; you focus on judgment).
+  Tool names change between Storybook minors; the current names are in `references/storybook-surface.md`.
 - `WITHOUT_MCP` → `references/without-mcp.md` (13 verification gaps + 4 critical SB10 patterns).
 - Controlled components (Switch/Toggle/Checkbox/Tabs/Accordion/Select) start from
   `templates/controlled-component-story.tsx` — the `useArgs` sync is what AI gets wrong.
@@ -99,6 +100,9 @@ grep -q '@storybook/addon-mcp' package.json && test -f .mcp.json && echo WITH_MC
   sure `main.ts` `stories` includes that path, and proceed. Recommend option 1.
 - **`isolated` (or `.storybook/stories/`)** → write under `.storybook/stories/` mirroring the tree
   (`.storybook/stories/components/CourseCard.stories.tsx`), importing the component via the `@/` alias.
+  The dev server does not watch `.storybook/stories/`: a story file added, moved or deleted there
+  stays out of (or stale in) the index until Storybook restarts, and every MCP tool reports "No story
+  found" for it. Restart after changing files there (verified on 10.6.0; `src/` stories update live).
 - **`colocated`** → `src/components/<X>/<X>.stories.tsx`.  **A custom path** → write there, every story.
 
 Whatever the answer, **all stories go to that one location** — never a mix.
@@ -149,7 +153,7 @@ The story view (one story, full canvas) is unaffected — this is only for the D
 for it on non-overlay components (inline rendering is lighter).
 
 **The page's own `dataHook` is just its data; the preview must also supply the provider TREE + root
-CSS the page renders under.** Read those from `.storybook/runtime.json` (`scripts/discover-runtime.py`) —
+CSS the page renders under.** Read those from `.storybook/runtime.json` (`scripts/discover-runtime.py . --out .storybook/runtime.json` if it's missing) —
 `providers[]`, `rootCss`, `portals[]`, `network.needsMsw` — they're set up once in the shared preview
 by `sb-setup`, so a page story rarely re-wires them. **Never re-derive by shell scan what a script
 already wrote to `.storybook/*.json`** — cite the field.

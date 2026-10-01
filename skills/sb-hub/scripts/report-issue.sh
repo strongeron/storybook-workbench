@@ -10,6 +10,7 @@
 # Usage:
 #   report-issue.sh "Coverage shows 0 needs-story but 8 components have no story"   # the 'what happened'
 #   report-issue.sh --title "..." --observed "..." --expected "..." --asked "..."
+#   report-issue.sh --gaps "..."                        # also include open sb-figma gaps (counts per kind only)
 #   SB_ISSUE_REPO=owner/name report-issue.sh "..."     # override the target repo
 #   report-issue.sh --help
 #
@@ -17,7 +18,7 @@
 set -uo pipefail
 
 REPO="${SB_ISSUE_REPO:-strongeron/storybook-workbench}"   # the public skills repo (override via env/flag)
-TITLE="" ASKED="" OBSERVED="" EXPECTED="" DESC=""
+TITLE="" ASKED="" OBSERVED="" EXPECTED="" DESC="" GAPS=0
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --repo)     REPO="$2"; shift 2 ;;
@@ -25,6 +26,7 @@ while [[ $# -gt 0 ]]; do
     --asked)    ASKED="$2"; shift 2 ;;
     --observed) OBSERVED="$2"; shift 2 ;;
     --expected) EXPECTED="$2"; shift 2 ;;
+    --gaps)     GAPS=1; shift ;;
     -h|--help)  sed -n '2,20p' "$0"; exit 0 ;;
     *)          DESC="${DESC:+$DESC }$1"; shift ;;
   esac
@@ -44,6 +46,22 @@ done
 # Each .storybook/*.json is summarized as "<file>: key:count …" — list lengths, the storyCoverage
 # source/needsCount (numbers), top-level key names. NO string values are ever emitted, so component
 # names, file paths, token values, and secrets cannot leak.
+# Open gaps from .storybook/figma/gaps.json as counts per kind. The only text kept is the CSS function
+# name of an unsupported colour value (e.g. color-mix) — never token names, values or component names.
+gaps_summary() {
+  [[ -f .storybook/figma/gaps.json ]] || { echo "- (no .storybook/figma/gaps.json — run an sb-figma script first)"; return; }
+  python3 - <<'PY'
+import json, re, collections
+gaps = [g for g in json.load(open('.storybook/figma/gaps.json')).get('gaps', []) if not g.get('resolved')]
+by = collections.Counter(g.get('kind', '?') for g in gaps)
+if not by: print('- none open')
+for kind, n in sorted(by.items()): print(f'- {kind}: {n}')
+fns = collections.Counter(m for g in gaps if g.get('kind') == 'unsupported-value'
+                          for m in re.findall(r'"([a-z][a-z-]*)\(', g.get('detail', '')))
+if fns: print('- unsupported colour syntax: ' + ', '.join(f'{f}() ×{n}' for f, n in sorted(fns.items())))
+PY
+}
+
 snapshot() {
   [[ -d .storybook ]] || { echo "- (no .storybook/ here — run from your project root)"; return; }
   python3 - <<'PY'
@@ -91,6 +109,11 @@ BODY="$(mktemp -d)/storybook-workbench-issue.md"   # mktemp -d is portable (BSD+
   echo "## Discovery snapshot (shapes/counts only — no source or values)"
   snapshot
   echo ""
+  if [[ "$GAPS" == 1 ]]; then
+    echo "## Open sb-figma gaps (kinds and counts only — no names or values)"
+    gaps_summary
+    echo ""
+  fi
   echo "## Repro steps"
   echo "1. <how to reproduce>"
   echo ""

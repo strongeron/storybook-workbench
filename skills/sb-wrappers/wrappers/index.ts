@@ -41,9 +41,9 @@ export { UsageSection } from './UsageSection';
 export { ComponentContext } from './ComponentContext';
 export type { ComponentContextProps } from './ComponentContext';
 
-// Top-of-page orientation — provenance banner for derived-report surfaces (OFF by default; flip on
-// with setProvenance() when someone asks "where is this from"), status banner for experiments.
-export { ReportIntro, ExperimentBanner, setProvenance, provenanceEnabled } from './ReportIntro';
+// Top-of-page orientation — provenance banner (on for report pages, off on Docs pages; setProvenance(true|false)
+// overrides both), status banner for experiments.
+export { ReportIntro, ReportTitle, ExperimentBanner, setProvenance, provenanceEnabled, docsProvenance } from './ReportIntro';
 export type { ReportIntroProps, ReportSource, ExperimentBannerProps } from './ReportIntro';
 
 // Tier 2 — EXTENDED

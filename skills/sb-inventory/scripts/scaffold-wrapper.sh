@@ -156,8 +156,8 @@ done
 
 # ---- always copy the shared support files ----
 # icons.tsx is the ONE wrapper icon language; ReportIntro.tsx is the shared "what is this /
-# where from" orientation banner (OFF by default — reachable on demand via setProvenance() /
-# __SB_WB_PROVENANCE__) imported by the report wrappers (ProjectInventory, AppFlowGraph,
+# where from" orientation banner (on for report pages, off on Docs pages; setProvenance(true|false) /
+# __SB_WB_PROVENANCE__ overrides) imported by the report wrappers (ProjectInventory, AppFlowGraph,
 # DesignSystemHealth, ComponentUsage, TokenMatrix, DecisionsDashboard) and the experiment banner
 # imported by ABCanvas. usage-index.tsx is the where-is-this-used resolver imported by TokenMatrix +
 # UsageExplorer. usage-stamp.tsx is the shared header/lane/chip/legend primitives + the component-pages

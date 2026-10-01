@@ -44,9 +44,11 @@ async function loadR3F(): Promise<R3FModules | null> {
 
   loadPromise = (async () => {
     try {
+      // @ts-ignore -- optional peer dependency: only resolvable when the project installs it
       const fiber = (await import(/* @vite-ignore */ '@react-three/fiber')) as { Canvas: R3FCanvasComponent };
       let orbit: OrbitControlsComponent | null = null;
       try {
+        // @ts-ignore -- optional peer dependency: only resolvable when the project installs it
         const drei = (await import(/* @vite-ignore */ '@react-three/drei')) as { OrbitControls: OrbitControlsComponent };
         orbit = drei.OrbitControls;
       } catch {

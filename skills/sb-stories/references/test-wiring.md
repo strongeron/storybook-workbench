@@ -8,7 +8,7 @@ wires the *runtime* — interaction + a11y — into two CLI commands an agent ca
 > **Why this earns its keep (field-verified).** Two commands caught real bugs a static check
 > never would: `test:storybook` surfaced a headless render crash (`createElement … data:image/svg+xml
 > … not a valid name`) and a mislabeled button; `test:storybook:a11y` produced a concrete,
-> actionable violation list. The MCP `run-story-tests` tool is great in-session, but the **CLI**
+> actionable violation list. The MCP `test-run` tool is great in-session, but the **CLI**
 > wiring is what gives an agent a pass/fail it can act on in CI or a fresh shell.
 
 ## What this is (and what it is NOT)
@@ -21,7 +21,7 @@ wires the *runtime* — interaction + a11y — into two CLI commands an agent ca
 ## Bridge first — confirm the current setup against Storybook docs
 
 Vitest/runner versions move fast. **Before writing config, fetch the live setup** rather than
-trusting this file's snapshot (MCP `get-documentation` for "test runner" / "vitest addon", or
+trusting this file's snapshot (MCP `docs-show` for "test runner" / "vitest addon", or
 WebFetch `storybook.js.org/docs/writing-tests`). Storybook's `init` already adds `addon-vitest` on
 10.4 — check whether the project is already wired before adding anything:
 

@@ -6,7 +6,7 @@ allowed-tools: Bash Read Glob Grep Write
 license: MIT
 metadata:
   author: strongeron
-  version: '2.3.0'
+  version: '2.4.0'
   bundle: storybook-workbench
   vendor:
     scripts: [inventory-project.sh, token-usage.py, scaffold-wrapper.sh, extract-component-usage.sh, scaffold-usage-mdx.py, build-component-pages.py, refresh-usage.sh]
@@ -142,11 +142,12 @@ barrel/dynamic/aliased imports can under-link; verify load-bearing edges against
      standalone audit page). The meta is **page-aware**: a real component reads "5 call sites · 2 props ·
      has a story", while a routed page (`isPage`) drops call-sites/props and leads with the route it serves
      — "serves /scheduler · 5 renders · has a story". A "what is this + where it's from" provenance band
-     sits inside it but is **off by default** (demo-only; reach it with `setProvenance()`). Reuses the
+     sits above it and is **off on Docs pages by default** (it would repeat on every component; turn it on
+     with `setProvenance(true)`). Reuses the
      Usage-explorer stamp.
    - **Pages/*** → the real app page from `src/`, rendered through the provider/Inertia mocks (sb-setup) —
-     the actual page, not a mockup. Its "what is this?" provenance band is **off by default** (the page
-     story carries the content; the band only returns when provenance is switched on).
+     the actual page, not a mockup. Its "what is this?" provenance band is **off on Docs pages by default** (the page
+     story carries the content; the band returns with `setProvenance(true)`).
    - **Foundations** → nothing from `UsageSection`. Each Foundation renders its own self-contained story:
      `Colors` → `TokenMatrix` (value · mapping · adoption — NOT health; leave the `health` prop off, it
      defaults false), `Health` → `DesignSystemHealth` (full findings), `Icons` → `IconMatrix`,

@@ -4,25 +4,28 @@ Load this reference when SKILL.md Step 1's pre-flight finds no `.storybook/` dir
 
 > ## Native-first: defer the bootstrap to Storybook (v1.13)
 >
-> **Storybook 10.4 ships agentic setup. Do NOT re-implement a bootstrap wizard — run theirs:**
+> **Storybook ships agentic setup. Do NOT re-implement a bootstrap wizard — run theirs:**
 >
 > ```bash
-> npx storybook ai setup     # detects framework/renderer/builder/addons, writes preview +
->                            # decorators + global styles, generates ~10 stories tagged for review
+> npm create storybook@latest   # no Storybook yet: installs, then prints follow-up steps for the agent
+> npx storybook skills setup    # Storybook present (10.6+): the setup prompt — preview, decorators,
+>                               # global styles, MSW, ~10 colocated stories
 > ```
-> Doc: `storybook.js.org/docs/ai/setup` — fetch it live (MCP `get-documentation` or WebFetch)
+> On 10.4–10.5 the second command is `npx storybook ai setup` (deprecated in 10.6). Commands per
+> version: `references/storybook-surface.md`.
+> Doc: `storybook.js.org/docs/ai/setup` — fetch it live (MCP `docs-show` or WebFetch)
 > rather than trusting this file; their onboarding moves faster than we can mirror.
 >
 > **What this reference is FOR (the parts docs under-cover) — the align + verify layer:**
 > 1. **Detect** framework + MCP support, and whether Storybook already exists (scan & adopt — never impose).
-> 2. **Defer** the install to `npx storybook ai setup` (or `npx storybook@latest init --yes` if the AI flow isn't available).
+> 2. **Defer** the install to `npm create storybook@latest` + `npx storybook skills setup` (or `npx storybook@latest init --yes` if the agent flow isn't available).
 > 3. **Validate the result aligns** — the genuinely under-documented bits below: `viteFinal` plugin-strip (Phase 4b), provider-decorator detection (Phase 4), MCP wiring + restart (Phase 6), width-constraint + viewport presets (Phase 4c).
 >
 > The 5 interview questions below are now **optional** — only ask one if the AI setup left the
-> choice open (taxonomy, Labs section). Skip anything `npx storybook ai setup` already decided.
+> choice open (taxonomy, Labs section). Skip anything the native setup already decided.
 > Wrapper tiers (old Q5) are **on-demand**, pulled in during Compose/Flow work — NOT an install question.
 
-**Verified against:** Storybook 10.4.1 + Vite 8 + React 19 + Node 24 sandbox on 2026-05-26. See `docs/publishing/storybook-mcp-verification.md` for the live verification report.
+**Verified against:** Storybook 10.6.0 + Vite 8 + React 19 on 2026-09-27 (MCP tools + `skills setup`); first sandbox run on 10.4.1 + Node 24, 2026-05-26 — `docs/publishing/storybook-mcp-verification.md`.
 
 ## When to load this reference
 
@@ -144,7 +147,7 @@ Write the chosen layers + example values into `.storybook/README.md` so the team
 
 Only ask if running Claude Code or another MCP-capable agent.
 
-> Wire Storybook MCP to your AI agent? This unlocks 6 tools (`list-all-documentation`, `get-documentation`, `preview-stories`, `run-story-tests`, etc.) that make AI-assisted story authoring much faster.
+> Wire Storybook MCP to your AI agent? This unlocks the Storybook tools (`docs-list`, `docs-show`, `stories-preview`, `test-run`, etc. — full list in `references/storybook-surface.md`) that make AI-assisted story authoring much faster.
 > - **Yes** (recommended for React + Vite projects)
 > - No / skip for now
 
@@ -203,16 +206,16 @@ grep -E "\"@storybook|storybook" package.json | head -20
 ls .storybook/
 ```
 
-Expected (10.4.1 init bundles these — DO NOT re-add separately):
+Expected (10.6 init bundles these — DO NOT re-add separately):
 
 ```
-storybook@^10.4.1
-@storybook/react-vite@^10.4.1
-@storybook/addon-mcp@^0.6.0           ← bundled, no separate install needed
-@storybook/addon-vitest@^10.4.1
-@storybook/addon-a11y@^10.4.1
-@storybook/addon-docs@^10.4.1
-@chromatic-com/storybook@^5.2.1
+storybook@^10.6.0
+@storybook/react-vite@^10.6.0
+@storybook/addon-mcp@^10.6.0          ← bundled, versioned with storybook since 10.6 (was 0.x)
+@storybook/addon-vitest@^10.6.0       ← addon-mcp peer dependency
+@storybook/addon-a11y@^10.6.0
+@storybook/addon-docs@^10.6.0
+@chromatic-com/storybook@^5.3.1
 ```
 
 ### Path B — Add optional addons selected in Phase 2 Q4
@@ -621,13 +624,13 @@ Run the command for whichever agent is detected. If multiple are present, ask th
 
 ### Tell the user
 
-> Storybook MCP is wired to `http://localhost:$PORT/mcp`. **Restart your agent (Claude Code / Codex / Cursor) in this project directory** to load the 6 MCP tools (`list-all-documentation`, `get-documentation`, `preview-stories`, `run-story-tests`, etc.). Until you restart, this session won't see the new tools — but the wiring will persist.
+> Storybook MCP is wired to `http://localhost:$PORT/mcp`. **Restart your agent (Claude Code / Codex / Cursor) in this project directory** to load the Storybook MCP tools (`docs-list`, `docs-show`, `stories-preview`, `test-run`, etc.). Until you restart, this session won't see the new tools — but the wiring will persist.
 
 ## Phase 7 — Verify
 
 ### MCP path
 
-After restarting the agent in this directory, ask it to list its tools — you should see `list-all-documentation`, `get-documentation`, `preview-stories`, `run-story-tests`, plus 2 more. If those don't appear, see "Storybook starts but `/mcp` endpoint returns 404" under failure modes.
+After restarting the agent in this directory, ask it to list its tools — you should see `docs-list`, `docs-show`, `stories-preview`, `test-run` and the rest listed in `references/storybook-surface.md` (or run `npx storybook tools --help`). Seeing `list-all-documentation` instead means addon-mcp is still 0.x — upgrade with `npx storybook@latest upgrade`. If those don't appear, see "Storybook starts but `/mcp` endpoint returns 404" under failure modes.
 
 ### Smoke test a story
 
@@ -643,11 +646,11 @@ curl -s -o /dev/null -w "%{http_code}\n" "http://localhost:$PORT/iframe.html?id=
 Print a structured summary:
 
 ```
-✓ Storybook 10.4.1 installed (~3 min)
+✓ Storybook 10.6.0 installed (~3 min)
 ✓ Addons: @storybook/addon-mcp, addon-vitest, addon-a11y, addon-docs, Chromatic
 ✓ Decorators wired: ThemeProvider, MemoryRouter, QueryClientProvider
 ✓ Story sort: Foundations → Components → Pages → Flows → Labs
-✓ MCP wired: http://localhost:6007/mcp (6 tools available after Claude Code restart)
+✓ MCP wired: http://localhost:6007/mcp (tools available after Claude Code restart)
 ✓ Demo stories present at /iframe.html?id=example-button--primary
 
 What's next:
@@ -692,12 +695,12 @@ Ask the user for the path. The detection grep is best-effort. Common locations:
 
 ### "User says they're on Vue / Angular / Web Components"
 
-Storybook installs fine, MCP doesn't. Skip Phase 6. Tell the user MCP support for non-React frameworks is on the Storybook roadmap. They'll be in the Without-MCP path; route to `references/without-mcp.md` after install.
+Storybook installs fine, MCP doesn't. Skip Phase 6. Tell the user the MCP docs tools are React-first (Vue 3 + Angular on Vite are experimental in 10.6). They'll be in the Without-MCP path; route to `references/without-mcp.md` after install.
 
 ## Verification record
 
 This wizard's commands and behavior are derived from:
-- Live sandbox run on 2026-05-26 (Storybook 10.4.1 + Vite 8 + React 19 + Node 24)
+- Live sandbox run on 2026-05-26 (Storybook 10.4.1 + Vite 8 + React 19 + Node 24); tools + setup re-verified on 10.6.0, 2026-09-27
 - Findings: `docs/publishing/storybook-mcp-verification.md`
 - 3 specific corrections to older docs (addon-mcp bundled, .mcp.json manual, port fallback)
 - Vault note: `Efforts/Agent Skills Studio/2026-05-26-storybook-mcp-verification.md`

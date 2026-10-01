@@ -100,6 +100,7 @@ export function UsageExplorer({ fillViewport = true, initialKind, initialId }: U
     <div style={{ background: 'var(--color-background)', color: ink, minHeight: fillViewport ? '100dvh' : undefined, fontFamily: mono, padding: '2rem 1.75rem 4rem' }}>
       <div style={{ maxWidth: 1180, margin: '0 auto' }}>
         <ReportIntro
+          title="Usage explorer"
           what="One place to answer 'where did I use this?'. Pick a token, component, or page and see its full context — what uses it and what it uses. Filter tokens by lane (color · typography · scale) to read the whole type system or palette at once. A related component or page with a story is a chip that opens its render view — click anywhere on the pill, not just the ↗. A token (or a not-yet-documented component) walks the graph in place instead."
           source={{ file: 'component-pages.json', skill: 'sb-inventory' }}
           pipeline={[

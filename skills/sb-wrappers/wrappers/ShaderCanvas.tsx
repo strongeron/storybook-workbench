@@ -68,7 +68,7 @@ export function ShaderCanvas({
   children,
 }: ShaderCanvasProps): JSX.Element {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const cleanupRef = useRef<() => void>();
+  const cleanupRef = useRef<(() => void) | undefined>(undefined);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -145,7 +145,8 @@ export function ShaderCanvas({
     function draw(t: number): void {
       if (!gl) return;
       gl.uniform1f(timeLocation, t);
-      gl.uniform2f(resolutionLocation, canvas.width, canvas.height);
+      // canvas is non-null (guarded above); a function declaration doesn't keep that narrowing
+      gl.uniform2f(resolutionLocation, canvas!.width, canvas!.height);
       applyUniforms();
       gl.drawArrays(gl.TRIANGLES, 0, 6);
     }

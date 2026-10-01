@@ -80,7 +80,7 @@ reads once to write code, regenerated on demand.
 | `flows.json` | `extract-flows.sh` | AppFlowGraph · JourneyGraph | **`refresh-usage.sh`** |
 | `design-system-health.json` | `validate-design-system.sh` (sb-health) | UsageSection (Health) · DesignSystemHealth · TokenMatrix | **`refresh-usage.sh`** |
 | `component-states.json` · `prop-shapes.json` · `runtime.json` | extract-states · extract-prop-shapes · discover-runtime | — (authoring inputs) | regenerated on demand by sb-stories / sb-setup |
-| `index.json` (Storybook's OWN report) | `storybook index` (CLI, no server/build) | — (reconciled into `project-inventory.json.storyCoverage`) | run by `inventory-project.sh` / `refresh-usage.sh` |
+| `index.json` (Storybook's OWN report) | `storybook index` (CLI, no server/build) | — (reconciled into `project-inventory.json` → `components.storyCoverage`) | run by `inventory-project.sh` / `refresh-usage.sh` |
 
 **Story coverage is authoritative, not a guess.** When Storybook is installed, `inventory-project.sh`
 runs `storybook index` and reconciles `index.json` (the stories Storybook actually registers) into
@@ -115,6 +115,25 @@ Always **ask** (isolated is the recommended/first option and the fallback). Reco
 hub honor it without re-asking. **The ask is enforced at two points** so it can't be skipped: `sb-setup`
 asks during install, and if Storybook already existed (so `sb-setup` was skipped), the **first
 `sb-stories` refuses to write until it asks** and records the choice. Never co-locate or guess silently.
+
+## Adapt it to your project — the extension points
+
+Change behavior through these, never by editing a skill's files (an update would overwrite the edit):
+
+| Extension point | What you change | Where |
+|---|---|---|
+| Project rules | token CSS path, dark-theme selectors, Figma name → token map, ignore list, variant value map, Code Connect label | `.storybook/workbench.json` (schema `workbench.schema.json`; `workbench-settings.mjs --init`) |
+| Design-system lint rules | which token families go on which CSS properties | `design-system/lint/colors.json` (sb-health) |
+| Script flags | paths, outputs, scope for one run — flags beat the settings file | each script's `--help` |
+| Wrapper props | what a Storybook-only view shows (titles, columns, `hideIntro`, `fillViewport`, …) | the story that renders it |
+| Icons | the wrappers' icon set | `mergeIcons(overrides)` |
+| Provenance cards | on/off for every "what is this?" card | `setProvenance(true\|false)` in `.storybook/preview.ts` |
+| Stories location | isolated `.storybook/stories/` or co-located | asked once by sb-setup, recorded in `.storybook/audit/status.md` |
+| Which skills | install the bundle or one skill at a time | `npx skills add … -s <skill>` |
+
+**When a run finds something it can't handle,** it records a gap (`.storybook/figma/gaps.json` for sb-figma)
+with a suggested rule; the next run shows open gaps first. A gap no rule can fix goes upstream through
+`report-issue.sh --gaps` (sanitized) and becomes an eval + a fix (CONTRIBUTING.md).
 
 ## What loads when (the load map — answers "is this 200k tokens?")
 

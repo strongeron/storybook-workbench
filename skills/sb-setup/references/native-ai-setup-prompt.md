@@ -1,4 +1,8 @@
-# The native `storybook ai setup` prompt — captured, with examples
+# The native setup prompt — captured, with examples
+
+> **10.6 rename:** the same prompt is now served by `npx storybook skills setup`. `storybook ai setup`
+> still prints it with a deprecation warning. Spot-checked 2026-09-27: the 10.6 prompt keeps the
+> Project Info table, rules of engagement, MSW and the ≤10 colocated stories target.
 
 This file mirrors the prompt that `npx storybook ai setup` injects, so our align+verify
 layer (`install-wizard.md`) stays honest about what the native flow already does. **The native

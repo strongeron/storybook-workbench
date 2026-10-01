@@ -147,7 +147,7 @@ Full decision tree + sub-paths: `references/propagate-workflow.md`. Two-line sum
 ```bash
 cp src/explore/hero/v2.tsx src/components/hero/Hero.tsx              # copy, don't move
 touch src/components/hero/Hero.stories.tsx                            # fresh production stories
-# (agent writes production states per references/with-mcp.md / without-mcp.md)
+# (agent writes production states per sb-stories' rules — its with-mcp / without-mcp references)
 ${CLAUDE_PLUGIN_ROOT}/scripts/validate-stories.sh src/components/hero/Hero.stories.tsx
 ```
 

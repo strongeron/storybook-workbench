@@ -1,22 +1,28 @@
-# With-MCP Workflow (Storybook 10.3+ on Vite)
+# With-MCP Workflow (Storybook 10.6+ on Vite)
 
 When `@storybook/addon-mcp` is installed AND wired to your agent (`.mcp.json` lists it, agent session has the tools loaded), defer to MCP for everything mechanical. The skill's job here is to teach the *call sequence* and the *judgment* MCP can't do.
 
-## The 6 tools and when to call them
+Tool names, their CLI equivalents, and the pre-10.6 names live in `references/storybook-surface.md`.
+If the tools you see don't match it, trust the server: `npx storybook tools --help` lists what this
+Storybook actually serves.
+
+## The tools and when to call them
 
 | Tool | When to call | What it gives you |
 |---|---|---|
-| `list-all-documentation` | Once at start of any task — discovery | Full component + story index. Use returned IDs in every subsequent call. |
-| `get-documentation` | After picking a target component | Description + first 3 stories with source + remaining stories listed + full TS props with JSDoc |
-| `get-documentation-for-story` | Need a story not in the first 3 | Full story source + linked MDX. Inputs: `componentId` AND `storyName` (two args). |
-| `get-storybook-story-instructions` | Before writing your first story this session | ~7,452 chars of CSF3 + coverage + a11y conventions. **Treat as system-prompt-level guidance.** |
-| `preview-stories` | After every story change | Preview URL (or embedded iframe). Always include the URL in the user-facing response. |
-| `run-story-tests` | After story passes preview | Vitest pass/fail per story + a11y violations. Pass `a11y: true` to run accessibility checks in the same batch. |
+| `docs-list` | Once at start of any task — discovery | Full component + docs index. Use returned IDs in every subsequent call. |
+| `docs-show` | After picking a target component | Description + first 3 stories with source + full TS props with JSDoc |
+| `docs-show-story` | Need a story not in the first 3 | One story's source. Input: `storyId` (preferred) or `componentId` + `storyName`. |
+| `get-storybook-story-instructions` | Before writing your first story this session | The project's CSF3 + coverage + a11y conventions. **Treat as system-prompt-level guidance.** |
+| `stories-find-by-component` | You edited a component and need its story IDs | Stories that render the file, grouped by import distance (1 = own stories, 2+ = consumers) |
+| `stories-changed` | After edits, to see what you touched | New / modified / related stories from the working tree |
+| `stories-preview` | After every story change | Preview URL. Always include the URL in the user-facing response. |
+| `test-run` | After story passes preview | Vitest pass/fail per story + a11y violations. Pass `a11y: true` to run accessibility checks in the same batch. |
 
 ## Standard sequence per task
 
 ```
-1. list-all-documentation { withStoryIds: true }
+1. docs-list { withStoryIds: true }
    → ranked candidate list
 
 2. get-storybook-story-instructions {}
@@ -24,17 +30,17 @@ When `@storybook/addon-mcp` is installed AND wired to your agent (`.mcp.json` li
    → MCP just told you how to write good stories; your job is judgment now
 
 3. For each component to write stories for:
-   a. get-documentation { id: "<component-id>" }
+   a. docs-show { id: "<component-id>" }
    b. Apply coverage judgment (SKILL.md Step 2 — per-primitive checklists)
    c. Apply factory judgment (SKILL.md Step 3 — extract if 3+ shared shapes)
    d. Write the story file (CSF3 syntax handled by injected conventions)
-   e. preview-stories { stories: [{ storyId: "<id>" }] }
-   f. run-story-tests { stories: ["<id>"], a11y: true }
+   e. stories-preview { stories: [{ storyId: "<id>" }] }
+   f. test-run { stories: [{ storyId: "<id>" }], a11y: true }
    g. If failures, fix and re-run. Cap retries at ~5 per file.
    h. Tag with ['ai-generated'] until human review
 
-4. Final pass: run-story-tests { stories: [], a11y: true }  (omitted stories = run all)
-   → broad verification before declaring done
+4. Final pass: stories-changed {} → test-run on those IDs with a11y: true
+   (test-run with no stories runs everything — use it before declaring done on a broad change)
 ```
 
 ## What MCP tells you that you can stop guessing
@@ -64,7 +70,7 @@ Then proceed with `references/without-mcp.md` for this session, noting that the 
 
 ## What MCP still doesn't do — your responsibility
 
-Even with all 6 tools available:
+Even with every tool available:
 
 - **Coverage decisions:** which variants/states deserve stories (designer state coverage beyond what's strictly behavior-changing)
 - **Factory naming + placement:** `makeButton({...})` vs. `createButton({...})`, where the factory file lives
@@ -75,23 +81,23 @@ Even with all 6 tools available:
 
 ## Authoring vs. tracking — MCP is for authoring
 
-These 6 tools are the *authoring* accelerator (discover a component, get its props, preview, test).
+These tools are the *authoring* accelerator (discover a component, get its props, preview, test).
 For **tracking** coverage across sessions/agents, the source of truth is Storybook's **`index.json`**,
 materialized by `storybook index -o .storybook/index.json` (CLI — no dev server, no MCP, no full build,
 so it runs the same on Claude/Codex/Cursor). `inventory-project.sh` reconciles it into
-`project-inventory.json.storyCoverage` (`withRegisteredStory` / `needsStory`). `list-all-documentation`
+`project-inventory.json` → `components.storyCoverage` (`withRegisteredStory` / `needsStory`). `docs-list`
 returns story IDs only — fine for authoring, but `index.json` carries `importPath`/`tags`, which is what
 the coverage reconcile needs. Don't reach for MCP to compute coverage; read the reconciled inventory.
 
 ## Anti-patterns specific to MCP-driven workflows
 
-1. **Calling MCP tools redundantly** — `list-all-documentation` once per task, not per component
+1. **Calling MCP tools redundantly** — `docs-list` once per task, not per component
 2. **Ignoring the injected instructions** — re-explaining CSF3 syntax in your output when MCP already told you the conventions
-3. **Skipping `preview-stories`** — the injected workflow guide explicitly requires you to include the preview URL in user-facing responses
-4. **Calling `run-story-tests` without `a11y: true`** — separate a11y runs cost two passes; one combined pass is cheaper
-5. **Inventing component / story IDs** — only use IDs returned by `list-all-documentation`. If a name isn't in the index, the component or story doesn't exist yet.
+3. **Skipping `stories-preview`** — the injected workflow guide explicitly requires you to include the preview URL in user-facing responses
+4. **Calling `test-run` without `a11y: true`** — separate a11y runs cost two passes; one combined pass is cheaper
+5. **Inventing component / story IDs** — only use IDs returned by `docs-list` or `stories-find-by-component`. If a name isn't in the index, the component or story doesn't exist yet.
 
 ## Verification record
 
-Live-verified against Storybook 10.4.1 + addon-mcp 0.6.0 + Vite 8 + React 19 on 2026-05-26.
-Full report: `docs/publishing/storybook-mcp-verification.md`.
+Live-verified against Storybook 10.6.0 + addon-mcp 10.6.0 + Vite 8 + React 19 on 2026-09-27
+(first verified on 10.4.1 + addon-mcp 0.6.0, 2026-05-26: `docs/publishing/storybook-mcp-verification.md`).

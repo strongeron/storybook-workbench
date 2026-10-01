@@ -23,14 +23,15 @@
  * stories — those are human-authored catalogs, self-evident, and a provenance block would be both
  * noise and untrue.
  *
- * Visibility — OFF BY DEFAULT. The provenance banner orients a first-time viewer of the PUBLISHED
- * Storybook demo; it explains the plugin's plumbing (which skill made the data, what file, how to
- * refresh). In a real client deliverable that meta-narration is noise, so ReportIntro renders
- * nothing unless provenance is switched on — reachable on demand for when someone asks "where is
- * this from?":
- *   · setProvenance(true)  — or  globalThis.__SB_WB_PROVENANCE__ = true  (set in .storybook/preview.ts,
- *                            a toolbar global, or at runtime) → every banner appears.
- *   · <ReportIntro show />  — reveal a single one without the global switch.
+ * Visibility — ON for report pages, OFF on per-component/per-page Docs. A report (inventory, health,
+ * usage explorer, route map, icons, tokens, flows) is generated data: whoever opens it — a teammate,
+ * the client, an agent — needs to know which skill made it, from what file, and how to refresh it
+ * before trusting it. On a component's Docs page the same card would repeat on every component, so
+ * those call sites pass `show={docsProvenance()}` (off unless the switch is on).
+ *   · setProvenance(false) — hide every card (a client deliverable that wants no plumbing shown)
+ *   · setProvenance(true)  — show every card, Docs pages included (the published demo does this)
+ *     (or globalThis.__SB_WB_PROVENANCE__ = true|false in .storybook/preview.ts, a toolbar global…)
+ *   · <ReportIntro show={…} /> — force one card either way.
  * ExperimentBanner is unaffected: a lifecycle-status line ("not shipped, decision pending") is real
  * deliverable content, not demo orientation.
  *
@@ -41,8 +42,8 @@
 import type { CSSProperties, ReactNode } from 'react';
 
 // ── Provenance visibility gate ───────────────────────────────────────────────────
-// One switch controls every "what is this?" banner. Default OFF so real deliverables aren't
-// cluttered with the plugin's own plumbing; reachable on demand (see the Visibility note above).
+// One switch controls every "what is this?" banner. Unset → reports show it, Docs pages don't
+// (see the Visibility note above).
 const PROVENANCE_GLOBAL = '__SB_WB_PROVENANCE__';
 
 /** Turn the provenance banners on (or off). The reachable, on-demand switch. */
@@ -52,12 +53,17 @@ export function setProvenance(on: boolean = true): void {
 
 /**
  * Resolve whether a provenance banner should show. Precedence: an explicit per-call `show` wins;
- * otherwise the global switch; default false (hidden). Absent switch → false, so the real-usage
- * default needs zero configuration.
+ * otherwise the global switch when it is set; otherwise `fallback` (true: report pages show it).
  */
-export function provenanceEnabled(show?: boolean): boolean {
+export function provenanceEnabled(show?: boolean, fallback: boolean = true): boolean {
   if (typeof show === 'boolean') return show;
-  return (globalThis as Record<string, unknown>)[PROVENANCE_GLOBAL] === true;
+  const global = (globalThis as Record<string, unknown>)[PROVENANCE_GLOBAL];
+  return typeof global === 'boolean' ? global : fallback;
+}
+
+/** For per-component / per-page Docs cards: hidden unless the global switch is on. */
+export function docsProvenance(): boolean {
+  return provenanceEnabled(undefined, false);
 }
 
 const SANS = 'var(--font-family-sans, ui-sans-serif, system-ui, sans-serif)';
@@ -65,7 +71,9 @@ const MONO = 'ui-monospace, SFMono-Regular, Menlo, Consolas, monospace';
 // Tinted neutrals (never pure #000/#fff): literal fallbacks lean a hair toward the brand hue so
 // the block still reads as designed when a project ships no semantic palette.
 const FG = 'var(--color-foreground, oklch(0.24 0.012 265))';
-const MUTED = 'var(--color-muted-foreground, oklch(0.55 0.014 265))';
+// Muted text sits on the card's brand tint, where the plain muted token lands just under 4.5:1 for these
+// small uppercase labels — so it leans 20% toward the foreground.
+const MUTED = 'color-mix(in oklab, var(--color-muted-foreground, oklch(0.55 0.014 265)) 80%, var(--color-foreground, oklch(0.24 0.012 265)))';
 const BRAND = 'var(--color-primary, oklch(0.55 0.14 265))';
 // Hairline frame around the block.
 const BORDER = 'var(--color-border, color-mix(in oklab, var(--color-muted-foreground, oklch(0.55 0.014 265)) 20%, transparent))';
@@ -165,6 +173,8 @@ export interface ReportSource {
 }
 
 export interface ReportIntroProps {
+  /** optional page heading rendered ABOVE the provenance card. Always visible (it isn't provenance). */
+  title?: ReactNode;
   /** one plain-language sentence: the question this page answers, including the load-bearing caveat. */
   what: ReactNode;
   /** where the data comes from: artifact ← skill. */
@@ -192,9 +202,28 @@ export interface ReportIntroProps {
 }
 
 /** Provenance banner for derived-report surfaces. OFF by default — see the Visibility note above. */
-export function ReportIntro({ what, source, freshness, refresh, pipeline, show }: ReportIntroProps) {
-  if (!provenanceEnabled(show)) return null;
+// Page title for a report surface — the heading the (removed) autodocs Docs page used to provide. Always
+// visible (it isn't provenance), styled identically everywhere so every story reads title → what-is-this.
+const pageTitleStyle: CSSProperties = {
+  fontFamily: MONO,
+  fontSize: '1.4rem',
+  fontWeight: 700,
+  letterSpacing: '-0.01em',
+  lineHeight: 1.2,
+  color: FG,
+  margin: '0 0 1rem',
+};
+export function ReportTitle({ children }: { children: ReactNode }) {
+  return <h1 style={pageTitleStyle}>{children}</h1>;
+}
+
+export function ReportIntro({ title, what, source, freshness, refresh, pipeline, show }: ReportIntroProps) {
+  const showCard = provenanceEnabled(show);
+  if (title == null && !showCard) return null;
   return (
+    <>
+      {title != null && <ReportTitle>{title}</ReportTitle>}
+      {showCard && (
     <aside aria-label="What this page is and where its data comes from" style={cardStyle}>
       {/* When a "made by" pipeline is shown below, drop the skill from the eyebrow (no duplication). */}
       <Eyebrow>{pipeline && pipeline.length > 0 ? 'what is this?' : `${source.skill} · what is this?`}</Eyebrow>
@@ -219,6 +248,8 @@ export function ReportIntro({ what, source, freshness, refresh, pipeline, show }
         </dl>
       </div>
     </aside>
+      )}
+    </>
   );
 }
 

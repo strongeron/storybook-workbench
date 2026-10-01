@@ -6,7 +6,7 @@ allowed-tools: Bash Read Glob Grep
 license: MIT
 metadata:
   author: strongeron
-  version: '2.3.0'
+  version: '2.4.0'
   bundle: storybook-workbench
   vendor:
     scripts: [report-issue.sh]
@@ -182,7 +182,7 @@ not a basename guess). Then route — **name exactly one**:
 
 | State | Next step | Skill |
 |---|---|---|
-| `NO_STORYBOOK` | defer bootstrap to `npx storybook ai setup`, then align | `sb-setup` |
+| `NO_STORYBOOK` | defer bootstrap to `npm create storybook@latest` + `npx storybook skills setup`, then align | `sb-setup` |
 | No `project-inventory.json` | discover real-vs-slop first | **`sb-inventory`** |
 | Inventory done, no `design-system-health.json` | check health before authoring | `sb-health` |
 | Health done, no `flows.json` | capture navigation + app-map | `sb-flows` |
@@ -212,6 +212,9 @@ don't just apologize. Draft it with the agent-native reporter, then hand them th
 CORE=${CLAUDE_PLUGIN_ROOT:-${CLAUDE_PLUGIN_ROOT}}
 "$CORE/scripts/report-issue.sh" --asked "<what they asked>" --observed "<what happened>" --expected "<what they wanted>"
 ```
+
+Add `--gaps` when the trouble came from sb-figma: the draft then lists the open gaps from
+`.storybook/figma/gaps.json` as counts per kind (no names or values).
 
 It writes a **sanitized** draft (versions + `.storybook/*.json` shapes/counts only — never source, token
 values, or component names) and prints a `gh issue create …` command + a blank-issue URL. It makes **no
